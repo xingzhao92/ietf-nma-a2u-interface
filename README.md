@@ -35,9 +35,9 @@ Use the A2U interface when:
 - A human operator interacts with the NMA through a chat interface or management portal
 - The caller does not implement the Agent lifecycle (intent parsing, task planning, tool calling, etc.) itself
 
-### When NOT to Use A2U (Use A2A Instead)
+### When NOT to Use A2U (Use A2A/A2A-T or other agent-to-agent protocols Instead)
 
-If the upper-layer system **is itself an Agent** (equipped with LLM reasoning, task planning, and tool invocation capabilities), it can interact with the lower-layer NMA through an **A2A (Agent-to-Agent) protocol** rather than A2U.
+If the upper-layer system **is itself an Agent** (equipped with LLM reasoning, task planning, and tool invocation capabilities), it can interact with the lower-layer NMA through an **A2A (Agent-to-Agent) / A2A-T or other agent-to-agent protocols** rather than A2U.
 
 In A2A scenarios:
 - Both parties are **peer Agents** with equal protocol status
