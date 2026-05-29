@@ -37,12 +37,12 @@ Use the A2U interface when:
 
 ### When NOT to Use A2U (Use A2A Instead)
 
-If the upper-layer system **is itself an Agent** (equipped with LLM reasoning, task planning, and tool invocation capabilities), it should interact with the lower-layer NMA through an **A2A (Agent-to-Agent) protocol** rather than A2U.
+If the upper-layer system **is itself an Agent** (equipped with LLM reasoning, task planning, and tool invocation capabilities), it can interact with the lower-layer NMA through an **A2A (Agent-to-Agent) protocol** rather than A2U.
 
 In A2A scenarios:
 - Both parties are **peer Agents** with equal protocol status
 - Bidirectional intent submission, capability negotiation, and commitment mechanisms are required
-- Cross-domain collaboration (e.g., cross-operator, cross-vendor, IP/optical coordination) falls into this category
+- Cross-domain agents collaboration (e.g., cross-operator, cross-vendor, IP/optical coordination) falls into this category
 
 ### Comparison Summary
 
