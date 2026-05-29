@@ -7,7 +7,7 @@ This repository contains the IETF Internet-Draft for the **Network Management Ag
 
 ## Overview
 
-The A2U interface defines a standardized northbound interface for NMAs to expose capabilities to upper-layer systems (OSS/BSS). It includes:
+The A2U interface defines a standardized northbound interface for NMAs to expose capabilities to upper-layer systems (orchestrator/OSS/BSS). It includes:
 
 - **Architecture framework** with dual-plane design (`/restconf/*` vs `/nma/*`)
 - **Unified information model** with 6 YANG modules covering capabilities, intents, tasks, confirmations, and events
