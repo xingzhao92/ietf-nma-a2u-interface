@@ -1,0 +1,222 @@
+module ietf-nma-a2u-events {
+  yang-version 1.1;
+  namespace "urn:ietf:params:xml:ns:yang:ietf-nma-a2u-events";
+  prefix nma-a2u-event;
+
+  import ietf-nma-a2u-common { prefix nma-a2u-common; }
+  import ietf-nma-a2u-tasks { prefix nma-a2u-task; }
+  import ietf-nma-a2u-confirmations { prefix nma-a2u-confirm; }
+  import ietf-yang-types { prefix yang; }
+
+  organization "IETF NMOP Working Group";
+  contact
+    "WG Web: https://datatracker.ietf.org/wg/nmop/
+     WG List: nmop@ietf.org";
+  description
+    "YANG data model for NMA Event notifications.
+
+     Copyright (c) 2026 IETF Trust and the persons identified as
+     authors of the code.  All rights reserved.
+
+     Redistribution and use in source and binary forms, with or
+     without modification, is permitted pursuant to, and subject
+     to the license terms contained in, the Revised BSD License
+     set forth in Section 4.c of the IETF Trust's Legal Provisions
+     Relating to IETF Documents
+     (https://trustee.ietf.org/license-info).
+
+     This version of this YANG module is part of RFC XXXX; see
+     the RFC itself for full legal notices.";
+
+  revision 2026-05-27 {
+    description "Initial revision.";
+    reference "RFC XXXX";
+  }
+
+  container events {
+    config false;
+    description "Container for all events.";
+
+    list event {
+      key "event-id";
+      description "An event notification.";
+
+      leaf event-id {
+        type string;
+        description "Unique event identifier.";
+      }
+
+      leaf event-type {
+        type nma-a2u-common:nma-a2u-event-type;
+        mandatory true;
+        description "Type of event.";
+      }
+
+      leaf task-id {
+        type leafref {
+          path "/nma-a2u-task:tasks/nma-a2u-task:task/nma-a2u-task:task-id";
+        }
+        mandatory true;
+        description "Associated task.";
+      }
+
+      leaf timestamp {
+        type yang:date-and-time;
+        mandatory true;
+        description "Event timestamp.";
+      }
+
+      leaf recipient {
+        type string;
+        description "Intended recipient of this event.";
+      }
+
+      container payload {
+        description "Event-specific payload.";
+
+        choice event-payload {
+          description "Payload based on event type.";
+
+          case intent-receipt {
+            container intent-receipt {
+              leaf estimated-processing-time {
+                type uint32;
+                units "seconds";
+                description "Estimated processing time.";
+              }
+              leaf accepted {
+                type boolean;
+                mandatory true;
+                description "Whether the intent was accepted.";
+              }
+            }
+          }
+
+          case clarification-request {
+            container clarification-request {
+              leaf-list missing-fields {
+                type string;
+                description "Required fields that are missing.";
+              }
+              leaf-list ambiguous-fields {
+                type string;
+                description "Fields that are ambiguous.";
+              }
+              leaf-list questions {
+                type string;
+                description "Clarifying questions to ask the user.";
+              }
+            }
+          }
+
+          case rejection {
+            container rejection {
+              leaf reason-code {
+                type string;
+                mandatory true;
+                description "Machine-readable rejection reason code.";
+              }
+              leaf explanation {
+                type string;
+                mandatory true;
+                description "Human-readable explanation.";
+              }
+            }
+          }
+
+          case plan-generated {
+            container plan-generated {
+              leaf step-count {
+                type uint32;
+                mandatory true;
+                description "Number of steps in the plan.";
+              }
+              leaf estimated-duration {
+                type uint32;
+                units "seconds";
+                description "Estimated plan execution duration.";
+              }
+            }
+          }
+
+          case confirmation-required {
+            container confirmation-required {
+              leaf confirmation-id {
+                type leafref {
+                  path "/nma-a2u-confirm:confirmations/nma-a2u-confirm:confirmation/nma-a2u-confirm:confirmation-id";
+                }
+                mandatory true;
+                description "Reference to the pending confirmation.";
+              }
+            }
+          }
+
+          case step-completed {
+            container step-completed {
+              leaf step-id {
+                type string;
+                mandatory true;
+                description "Completed step identifier.";
+              }
+              leaf observation {
+                type string;
+                description "Observation from the step.";
+              }
+            }
+          }
+
+          case step-failed {
+            container step-failed {
+              leaf step-id {
+                type string;
+                mandatory true;
+                description "Failed step identifier.";
+              }
+              leaf exception-type {
+                type string;
+                mandatory true;
+                description "Type of exception.";
+              }
+              leaf affected-scope {
+                type string;
+                description "Scope affected by the failure.";
+              }
+              leaf-list remedial-suggestions {
+                type string;
+                description "Suggested remedial actions.";
+              }
+            }
+          }
+
+          case task-completed {
+            container task-completed {
+              leaf summary {
+                type string;
+                mandatory true;
+                description "Task completion summary.";
+              }
+              leaf-list affected-resources {
+                type string;
+                description "Resources affected.";
+              }
+            }
+          }
+
+          case task-failed {
+            container task-failed {
+              leaf reason {
+                type string;
+                mandatory true;
+                description "Failure reason.";
+              }
+              leaf failed-step-id {
+                type string;
+                description "Step that caused failure, if applicable.";
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,136 @@
+module ietf-nma-a2u-common {
+  yang-version 1.1;
+  namespace "urn:ietf:params:xml:ns:yang:ietf-nma-a2u-common";
+  prefix nma-a2u-common;
+
+  organization
+    "IETF NMOP Working Group";
+  contact
+    "WG Web: https://datatracker.ietf.org/wg/nmop/
+     WG List: nmop@ietf.org";
+  description
+    "Common types and groupings for NMA A2U interface.
+
+     Copyright (c) 2026 IETF Trust and the persons identified as
+     authors of the code.  All rights reserved.
+
+     Redistribution and use in source and binary forms, with or
+     without modification, is permitted pursuant to, and subject
+     to the license terms contained in, the Revised BSD License
+     set forth in Section 4.c of the IETF Trust's Legal Provisions
+     Relating to IETF Documents
+     (https://trustee.ietf.org/license-info).
+
+     This version of this YANG module is part of RFC XXXX; see
+     the RFC itself for full legal notices.";
+
+  revision 2026-05-27 {
+    description "Initial revision.";
+    reference "RFC XXXX";
+  }
+
+  typedef autonomy-level {
+    type enumeration {
+      enum L0 { description "Manual operation"; }
+      enum L1 { description "Assisted operation"; }
+      enum L2 { description "Partial automation"; }
+      enum L3 { description "Conditional automation"; }
+      enum L4 { description "High automation"; }
+      enum L5 { description "Full automation"; }
+    }
+    description "Autonomous Network level per TMF IG1230.";
+  }
+
+  typedef intent-mode {
+    type enumeration {
+      enum natural-language {
+        description "Intent expressed in natural language text.";
+      }
+      enum structured {
+        description "Intent expressed in structured data.";
+      }
+    }
+    description "Input mode for intent submission.";
+  }
+
+  typedef intent-type {
+    type enumeration {
+      enum CREATE { description "Create a new resource or service."; }
+      enum DELETE { description "Delete an existing resource or service."; }
+      enum MODIFY { description "Modify an existing resource or service."; }
+      enum QUERY { description "Query status or information."; }
+      enum REPORT { description "Generate a report."; }
+      enum DIAGNOSE { description "Perform diagnosis."; }
+    }
+    description "Type of structured intent operation.";
+  }
+
+  typedef task-state {
+    type enumeration {
+      enum PENDING { description "Intent received, awaiting processing."; }
+      enum ANALYZING { description "Parsing and analyzing intent."; }
+      enum AWAITING_CLARIFICATION { description "Need more info from user."; }
+      enum PLANNING { description "Generating execution plan."; }
+      enum AWAITING_CONFIRMATION { description "Awaiting user confirmation."; }
+      enum EXECUTING { description "Executing the plan."; }
+      enum COMPLETED { description "Task completed successfully."; }
+      enum FAILED { description "Task failed."; }
+      enum ABORTED { description "Task aborted by user or system."; }
+    }
+    description "Unified task lifecycle state.";
+  }
+
+  typedef confirmation-type {
+    type enumeration {
+      enum EXECUTION {
+        description "Confirm before executing a plan.";
+      }
+      enum PARAMETER_CHANGE {
+        description "Confirm parameter modifications.";
+      }
+      enum DESTRUCTIVE_OPERATION {
+        description "Confirm destructive operations.";
+      }
+      enum POLICY_VIOLATION {
+        description "Confirm when policy is violated.";
+      }
+    }
+    description "Type of confirmation required.";
+  }
+
+  typedef nma-a2u-event-type {
+    type enumeration {
+      enum intent-received { description "Intent has been received."; }
+      enum intent-parsed { description "Intent parsing completed."; }
+      enum intent-clarification-required {
+        description "Need clarification for intent.";
+      }
+      enum intent-rejected { description "Intent rejected."; }
+      enum plan-generated { description "Execution plan generated."; }
+      enum confirmation-required { description "Confirmation needed."; }
+      enum step-started { description "A plan step started."; }
+      enum step-completed { description "A plan step completed."; }
+      enum step-failed { description "A plan step failed."; }
+      enum task-completed { description "Task completed."; }
+      enum task-failed { description "Task failed."; }
+      enum task-suspended { description "Task suspended."; }
+    }
+    description "Event types for NMA A2U interface.";
+  }
+
+  grouping submitter-info {
+    description "Information about who submitted the intent.";
+    leaf type {
+      type enumeration {
+        enum user { description "Human user."; }
+        enum system { description "OSS/BSS system."; }
+        enum agent { description "Another agent (for future A2A)."; }
+      }
+      description "Type of submitter.";
+    }
+    leaf id {
+      type string;
+      description "Identifier of the submitter.";
+    }
+  }
+}
