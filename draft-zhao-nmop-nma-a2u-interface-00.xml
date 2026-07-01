@@ -1,0 +1,2288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude"
+     version="3"
+     category="info"
+     consensus="false"
+     docName="draft-zhao-nmop-nma-a2u-interface-00"
+     ipr="trust200902"
+     submissionType="IETF"
+     tocInclude="true"
+     sortRefs="true">
+  <front>
+    <title abbrev="NMA A2U Interface">Framework and YANG Data Model for the NMA A2U Interface</title>
+    <seriesInfo name="Internet-Draft" value="draft-zhao-nmop-nma-a2u-interface-00"/>
+    <author fullname="Xing Zhao" initials="X." surname="Zhao">
+      <organization abbrev="CAICT">China Academy of Information and Communication Technology</organization>
+      <address>
+        <postal>
+          <country>China</country>
+        </postal>
+        <email>zhaoxing@caict.ac.cn</email>
+      </address>
+    </author>
+    <date day="30" month="June" year="2026"/>
+    <area>Operations and Management</area>
+    <workgroup>Network Management Operations</workgroup>
+    <keyword>NMA</keyword>
+    <keyword>A2U</keyword>
+    <keyword>YANG</keyword>
+    <keyword>Network Management Agent</keyword>
+    <abstract>
+      <t>This document describes a framework and a YANG data model for the Agent-to-User (A2U) interface of a Network Management Agent (NMA).  The A2U interface is a user-facing interface through which a non-agent upper-layer system or user, such as an operator's OSS/BSS, orchestrator, management portal, human-facing application, automation system, etc., interacts with an NMA.</t>
+      <t>The A2U interface supports NMA capability discovery, unified intent submission, task lifecycle management, execution plan exposure, human-in-the-loop confirmation, event notification, and consistent error reporting.</t>
+      <t>The YANG data model defined in this document describes protocol-binding-independent information objects and message structures used by the A2U interface.  This document does not mandate a specific protocol binding.  An HTTP-based realization using JSON and Server-Sent Events (SSE) is provided as a non-normative example.</t>
+    </abstract>
+  </front>
+  <middle>
+    <section anchor="introduction">
+      <name>Introduction</name>
+      <t>Telecommunication networks are becoming increasingly complex in scale, technology composition, service diversity, and operational requirements. Traditional manual operation and fixed API-based management are often insufficient to support highly automated and adaptive network operations.</t>
+      <t>A Network Management Agent (NMA) is an autonomous or semi-autonomous management entity with awareness, analysis, decision-making, and execution capabilities. It can interpret user goals, plan management actions, invoke tools and interfaces, monitor execution, and report results.</t>
+      <t>To allow non-agent upper-layer systems and users to consume NMA capabilities in a uniform way, this document defines the Agent-to-User (A2U) interface.</t>
+      <t>The A2U interface supports:</t>
+      <ul>
+        <li>NMA capability discovery;</li>
+        <li>natural-language or structured intent submission;</li>
+        <li>task lifecycle monitoring;</li>
+        <li>execution plan exposure;</li>
+        <li>human-in-the-loop confirmation;</li>
+        <li>event notification;</li>
+        <li>consistent error reporting.</li>
+      </ul>
+      <t>A2U is intended for client/server-style interaction between a non-agent upper-layer system or user and an NMA. It is not intended for communication between an upper-layer NMA and a lower-layer NMA. NMA-to-NMA or Agent-to-Agent communication is outside the scope of A2U and is expected to use A2A or other Agent-to-Agent interfaces.</t>
+      <t>The A2U YANG data model is protocol-binding independent. It describes the information exchanged across the A2U interface, but it does not require that A2U objects be exposed as configuration datastore nodes.</t>
+      <t>An HTTP-based realization is provided in Appendix A. In such a realization, A2U may use /nma/a2u/* resources and be logically separated from the traditional RESTCONF configuration plane using /restconf/*, while sharing the same TLS and authentication infrastructure.</t>
+    </section>
+    <section anchor="requirements-language">
+      <name>Requirements Language</name>
+      <t>The key words &quot;MUST&quot;, &quot;MUST NOT&quot;, &quot;REQUIRED&quot;, &quot;SHALL&quot;, &quot;SHALL NOT&quot;, &quot;SHOULD&quot;, &quot;SHOULD NOT&quot;, &quot;RECOMMENDED&quot;, &quot;NOT RECOMMENDED&quot;, &quot;MAY&quot;, and &quot;OPTIONAL&quot; in this document are to be interpreted as described in BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals.</t>
+    </section>
+    <section anchor="terminology">
+      <name>Terminology</name>
+      <dl newline="true" spacing="compact">
+        <dt>A2U Interface</dt>
+        <dd>The Agent-to-User interface through which a non-agent upper-layer system or user consumes NMA capabilities.</dd>
+        <dt>Network Management Agent (NMA)</dt>
+        <dd>A network management entity defined in [I-D.zhao-nmop-network-management-agent] that interprets management goals, plans tasks, invokes tools or interfaces, monitors execution, and reports results.</dd>
+        <dt>A2U Client</dt>
+        <dd>A non-agent upper-layer system or user-facing application that uses the A2U interface. Examples include an operator's OSS/BSS systems, orchestrators, management portals, automation systems, and human-facing applications. An upper-layer NMA is not an A2U Client in this document.</dd>
+        <dt>Intent</dt>
+        <dd>A goal description submitted to the NMA. It can be expressed using natural language or structured data.</dd>
+        <dt>Task</dt>
+        <dd>A management operation unit instantiated by the NMA for an accepted intent.</dd>
+        <dt>Plan</dt>
+        <dd>A sequence of steps generated by the NMA to execute a task.</dd>
+        <dt>Confirmation</dt>
+        <dd>A pending decision object generated when a task requires explicit approval, rejection, modification, or escalation.</dd>
+        <dt>Event</dt>
+        <dd>A task-related notification generated by the NMA.</dd>
+        <dt>Agent Card</dt>
+        <dd>The capability discovery object returned by the NMA.</dd>
+        <dt>A2A Interface</dt>
+        <dd>An Agent-to-Agent interface used for interaction between agents or NMAs. A2A is outside the scope of this document.</dd>
+        <dt>A2C Interface</dt>
+        <dd>The Agent-to-Controller interface between the NMA and controller functions.</dd>
+        <dt>A2N Interface</dt>
+        <dd>The Agent-to-Network interface between the NMA and network resources, or the corresponding extended southbound capability in an integrated deployment.</dd>
+      </dl>
+    </section>
+    <section anchor="scope">
+      <name>Scope</name>
+      <t>This document defines:</t>
+      <ul>
+        <li>A2U interface positioning;</li>
+        <li>A2U reference framework;</li>
+        <li>A2U interaction principles;</li>
+        <li>A2U information model;</li>
+        <li>a single YANG data model for A2U objects;</li>
+        <li>a non-normative HTTP-based protocol binding example.</li>
+      </ul>
+      <t>This document does not define:</t>
+      <ul>
+        <li>a mandatory new transport protocol;</li>
+        <li>Agent-to-Agent communication;</li>
+        <li>NMA-to-NMA negotiation or delegation;</li>
+        <li>domain-specific service models, such as optical network service models or IP network service models;</li>
+        <li>LLM implementation details;</li>
+        <li>detailed A2C or A2N protocol mechanisms;</li>
+        <li>internal NMA implementation details.</li>
+      </ul>
+    </section>
+    <section anchor="a2u-interface-positioning">
+      <name>A2U Interface Positioning</name>
+      <t>A2U is used when a non-agent upper-layer system or user invokes NMA capabilities.</t>
+      <t>In the A2U model:</t>
+      <ul>
+        <li>the A2U Client is a non-agent system or user;</li>
+        <li>the NMA exposes capabilities upward;</li>
+        <li>the client submits intents or requests;</li>
+        <li>the NMA manages parsing, planning, execution, confirmation, event reporting, and result generation;</li>
+        <li>the client observes, confirms, or aborts the task when required.</li>
+      </ul>
+      <t>A2U is not used when an upper-layer NMA communicates with a lower-layer NMA. Such communication is Agent-to-Agent communication and should use A2A or other Agent-to-Agent interfaces, because both sides may need peer-agent semantics such as capability negotiation, task delegation, collaboration, commitment, trust establishment, and result aggregation.</t>
+      <t>The A2U interface is distinct from:</t>
+      <ul>
+        <li>A2A, used between agents or NMAs;</li>
+        <li>A2C, used between the NMA and controller functions;</li>
+        <li>A2N, used between the NMA and network resources.</li>
+      </ul>
+    </section>
+    <section anchor="a2u-reference-framework">
+      <name>A2U Reference Framework</name>
+      <t>The figure below follows the integrated deployment mode of the NMA architecture. In this mode, the NMA is integrated with the Network Controller as part of an enhanced controller platform. The controller functions are shown on the left and the NMA functions are shown on the right.</t>
+      <figure>
+	  <name>Framework of A2U interface</name>
+        <artwork type="ascii-art"><![CDATA[
+        +------------------------------------------------------------------+
+        |                    Upper-Layer System / User                     |
+        |                                                                  |
+        |      Human Operator | OSS/BSS | Orchestrator | Portal | ...      |
+        +-------------------------------^----------------------------------+
+                                        |
+                                        | Agent-to-User Interface (A2U)
+                                        |
+        +-------------------------------v----------------------------------+
+        |                    Enhanced Network Controller                   |
+        |                     (Integrated Deployment)                      |
+        |                                                                  |
+        |  +--------------------------------+  +------------------------+  |
+        |  |  Existing Controller Function  |  |  Network Management    |  |
+        |  |                                |  |      Agent (NMA)       |  |
+        |  | Topology Management            |  | +--------------------+ |  |
+        |  | Telemetry Management           |  | |     A2U function   | |  |
+        |  | Configuration Management       |  | |--------------------| |  |
+        |  | Policy Control                 |  | | - Agent capability | |  |
+        |  | Simulation / Analytics Tools   |  | | - Intent           | |  |
+        |  |                                |  | | - Task / Plan      | |  |
+        |  |                                |  | | - Confirmation     | |  |
+        |  |                                |  | | - Event / Result   | |  |
+        |  |                                |  | +--------------------+ |  |
+        |  |                                |  | Autonomous Logic Layer |  |
+        |  |                                |  | Supporting Functions   |  |
+        |  +--------------------------------+  +------------------------+  |
+        |                  <------ internal A2C relationship ------>       |
+        +-----------------------------------^------------------------------+
+                                            |
+                                            | Extended Southbound interface
+                                            | including A2N-related
+                                            | interaction capability
+                                            |
+        +-----------------------------------v------------------------------+
+        |                           Network Resources                      |
+        |                                                                  |
+        |  Devices | Links | Services | Telemetry | Network State | ...    |
+        +------------------------------------------------------------------+
+		]]></artwork>
+      </figure>
+      <t>The A2U Service Function provides capability discovery, intent submission, task monitoring, plan exposure, confirmation handling, event notification, and result reporting.</t>
+      <t>The A2U data model defined in this document focuses only on information exchanged across A2U. It does not define the internal NMA architecture, internal A2C mechanisms, or extended southbound mechanisms.</t>
+      <t>In the independent deployment mode, the NMA may be deployed beside the Network Controller. In that case, the NMA exposes A2U upward, interacts with the controller through A2C, and interacts with network resources through A2N.</t>
+    </section>
+    <section anchor="a2u-design-principles">
+      <name>A2U Design Principles</name>
+    <section anchor="logical-separation">
+      <name>Logical Separation</name>
+      <t>In an HTTP-based realization, A2U may share the controller's HTTPS port, TLS session, and authentication system, but it is logically separated from the configuration plane.</t>
+      <t>For example:</t>
+      <ul>
+        <li>/restconf/* may be used for RESTCONF configuration and operational datastore access;</li>
+        <li>/nma/a2u/* may be used for A2U interaction.</li>
+      </ul>
+    </section>
+    <section anchor="protocol-binding-independence">
+      <name>Protocol-Binding Independence</name>
+      <t>The A2U YANG model defines information objects and message structures. It does not mandate HTTP, RESTCONF, NETCONF, gRPC, or any other protocol binding.</t>
+    </section>
+    <section anchor="unified-intent-entry">
+      <name>Unified Intent Entry</name>
+      <t>Natural-language and structured input share the same intent submission entry and the same task lifecycle. The mode field distinguishes the input type.</t>
+    </section>
+    <section anchor="unified-task-lifecycle">
+      <name>Unified Task Lifecycle</name>
+      <t>After an intent is accepted, the NMA creates or associates a task. The task lifecycle includes:</t>
+      <figure>
+	  <name>Lifecycle of a task</name>
+        <artwork type="ascii-art"><![CDATA[PENDING -> ANALYZING -> PLANNING -> AWAITING_CONFIRMATION
+        -> EXECUTING -> COMPLETED / FAILED / ABORTED]]></artwork>
+      </figure>
+      <t>Clarification may be requested when input is incomplete or ambiguous.</t>
+    </section>
+    <section anchor="human-in-the-loop-confirmation">
+      <name>Human-in-the-Loop Confirmation</name>
+      <t>When a task exceeds an autonomy level, violates a policy, affects critical resources, or requires human review, the NMA creates a confirmation object and suspends execution until the confirmation is resolved.</t>
+    </section>
+    <section anchor="event-streaming-and-polling">
+      <name>Event Streaming and Polling</name>
+      <t>The NMA reports task progress through typed events. Events may be delivered by streaming, polling, or other binding-specific mechanisms.</t>
+    </section>
+    </section>
+    <section anchor="a2u-information-model">
+      <name>A2U Information Model</name>
+      <t>The A2U information model contains five core components.</t>
+    <section anchor="agent-capabilities">
+      <name>Agent Capabilities</name>
+      <t>The agent-capabilities object, also called the Agent Card, describes the NMA and its exposed skills. It includes:</t>
+      <ul>
+        <li>agent identifier;</li>
+        <li>version;</li>
+        <li>skill list;</li>
+        <li>input schema for each skill;</li>
+        <li>confirmation requirement;</li>
+        <li>maximum autonomy level;</li>
+        <li>optional tags for skill classification and discovery;</li>
+        <li>endpoint list;</li>
+        <li>global policies.</li>
+      </ul>
+    </section>
+    <section anchor="intent">
+      <name>Intent</name>
+      <t>The intent object represents a user or system goal. It includes:</t>
+      <ul>
+        <li>intent identifier;</li>
+        <li>input mode;</li>
+        <li>submitter information;</li>
+        <li>timestamp;</li>
+        <li>state;</li>
+        <li>associated task identifier;</li>
+        <li>natural-language or structured input;</li>
+        <li>estimated completion time.</li>
+      </ul>
+      <t>Natural-language input may include the original user text, parsed result, and parser type. Structured input includes operation type, target resource, constraints, and priority.</t>
+      <t>The intent-type identifies the high-level operation category. It is not intended to encode all domain-specific subtypes. Domain-specific details, such as service assurance objectives, fault symptoms, recovery constraints, or optimization policies, are carried in the constraints field.</t>
+      <t>The base operation categories include creation, deletion, modification, query, reporting, diagnosis, remediation, optimization, and assurance. For example, service assurance is represented by ASSURE; fault analysis is represented by DIAGNOSE; corrective fault handling or service recovery is represented by REMEDIATE.</t>
+    </section>
+    <section anchor="task">
+      <name>Task</name>
+      <t>The task object represents the lifecycle of an accepted intent. It includes:</t>
+      <ul>
+        <li>task identifier;</li>
+        <li>parent intent identifier;</li>
+        <li>state;</li>
+        <li>creation and update timestamps;</li>
+        <li>plan;</li>
+        <li>result;</li>
+        <li>audit log.</li>
+      </ul>
+      <t>The plan is a list of steps. The audit log records important task actions.</t>
+    </section>
+    <section anchor="confirmation">
+      <name>Confirmation</name>
+      <t>The confirmation object represents a pending or resolved decision point. It includes:</t>
+      <ul>
+        <li>confirmation identifier;</li>
+        <li>task identifier;</li>
+        <li>confirmation type;</li>
+        <li>priority;</li>
+        <li>timeout;</li>
+        <li>context;</li>
+        <li>allowed actions;</li>
+        <li>status;</li>
+        <li>resolution details.</li>
+      </ul>
+      <t>The resolution container records the final decision made for a confirmation, including the selected action, any modified parameters, the resolver, and the resolution time.</t>
+    </section>
+    <section anchor="event">
+      <name>Event</name>
+      <t>The event object represents task-related notifications. It includes:</t>
+      <ul>
+        <li>event identifier;</li>
+        <li>event type;</li>
+        <li>task identifier;</li>
+        <li>timestamp;</li>
+        <li>recipient;</li>
+        <li>typed payload.</li>
+      </ul>
+      <t>The event payload is modeled as a choice so that different event types carry different payload structures.</t>
+    </section>
+    </section>
+    <section anchor="yang-data-model">
+      <name>YANG Data Model</name>
+    <section anchor="model-design">
+      <name>Model Design</name>
+      <t>This document defines a single YANG module, ietf-nma-a2u.</t>
+      <t>The module uses the YANG data structure extension defined in [RFC8791]. The sx:structure statements describe abstract information objects and message bodies exchanged across A2U. They are not configuration datastore nodes.</t>
+      <t>Only the top-level structures use the nma-a2u- prefix in their names, in order to distinguish A2U structures from other future NMA interface structures. Fields inside the structures keep short names for readability.</t>
+      <t>The reusable groupings use the -object suffix, such as intent-object and task-object, to distinguish reusable object templates from instantiated containers and top-level structures.</t>
+    </section>
+    <section anchor="yang-tree">
+      <name>YANG Tree</name>
+      <t>The following tree provides a non-normative overview of the main A2U structures.</t>
+      <figure>
+	  <name>YANG tree of ietf-nma-a2u YANG model</name>
+        <artwork type="ascii-art"><![CDATA[module: ietf-nma-a2u
+
+  structure nma-a2u-agent-capabilities
+    +-- agent-id                    string
+    +-- version                     string
+    +-- skills* [skill-id]
+    |  +-- skill-id                 string
+    |  +-- name                     string
+    |  +-- description?             string
+    |  +-- input-schema?            union
+    |  +-- confirmation-required?   boolean
+    |  +-- max-autonomy-level       autonomy-level
+    |  +-- tags*                    string
+    +-- endpoints* [name]
+    |  +-- name                     string
+    |  +-- uri                      inet:uri
+    |  +-- methods*                 string
+    +-- policies
+       +-- default-autonomy-level?  autonomy-level
+       +-- human-in-the-loop?       boolean
+       +-- max-timeout-seconds?     uint32
+
+  structure nma-a2u-intent
+    +-- intent-id?                  string
+    +-- mode                        intent-mode
+    +-- submitter
+    |  +-- type?                    enumeration
+    |  +-- id?                      string
+    +-- timestamp?                  yang:date-and-time
+    +-- state?                      task-state
+    +-- task-id?                    string
+    +-- (mode-choice)
+    |  +--:(natural-language)
+    |  |  +-- natural-language
+    |  |     +-- text               string
+    |  |     +-- parsed-result-schema? inet:uri
+    |  |     +-- parsed-result?     anydata
+    |  |     +-- parser?            parser-type
+    |  +--:(structured)
+    |     +-- structured
+    |        +-- type               intent-type
+    |        +-- target-resource?   string
+    |        +-- constraints-schema? inet:uri
+    |        +-- constraints        anydata
+    |        +-- priority?          uint8
+    +-- estimated-completion?       uint32
+
+  structure nma-a2u-task
+    +-- task-id?                    string
+    +-- parent-intent-id            string
+    +-- state                       task-state
+    +-- created-at                  yang:date-and-time
+    +-- updated-at                  yang:date-and-time
+    +-- plan* [step-id]
+    |  +-- step-id                  string
+    |  +-- action                   string
+    |  +-- target?                  string
+    |  +-- input-params?            anydata
+    |  +-- status                   step-state
+    |  +-- observation?             string
+    |  +-- started-at?              yang:date-and-time
+    |  +-- completed-at?            yang:date-and-time
+    +-- result
+    |  +-- success?                 boolean
+    |  +-- summary?                 string
+    |  +-- affected-resources*      string
+    |  +-- output-data?             anydata
+    +-- audit-log* [log-id]
+       +-- log-id                   string
+       +-- timestamp                yang:date-and-time
+       +-- actor                    string
+       +-- action                   string
+       +-- details?                 string
+
+  structure nma-a2u-confirmation
+    +-- confirmation-id?            string
+    +-- task-id                     string
+    +-- type                        confirmation-type
+    +-- priority?                   uint8
+    +-- timeout-seconds?            uint32
+    +-- context-schema?             inet:uri
+    +-- context                     anydata
+    +-- allowed-actions*            confirmation-action
+    +-- status?                     confirmation-status
+    +-- resolution
+       +-- action?                  confirmation-action
+       +-- modified-params-schema?  inet:uri
+       +-- modified-params?         anydata
+       +-- resolved-by?             string
+       +-- resolved-at?             yang:date-and-time
+
+  structure nma-a2u-event
+    +-- event-id?                   string
+    +-- event-type                  nma-a2u-event-type
+    +-- task-id                     string
+    +-- timestamp                   yang:date-and-time
+    +-- recipient?                  string
+    +-- payload
+       +-- (event-payload)
+          +--:(intent-receipt)
+          +--:(clarification-request)
+          +--:(rejection)
+          +--:(plan-generated)
+          +--:(confirmation-required)
+          +--:(step-completed)
+          +--:(step-failed)
+          +--:(task-completed)
+          +--:(task-failed)
+
+  structure nma-a2u-submit-intent-request
+    +-- request-id?                 string
+    +-- correlation-id?             string
+    +-- tenant-id?                  string
+    +-- idempotency-key?            string
+    +-- intent
+       +-- uses intent-object
+
+  structure nma-a2u-submit-intent-response
+    +-- request-id?                 string
+    +-- correlation-id?             string
+    +-- tenant-id?                  string
+    +-- idempotency-key?            string
+    +-- accepted                    boolean
+    +-- intent-id?                  string
+    +-- task-id?                    string
+    +-- state?                      task-state
+    +-- task
+    |  +-- uses task-object
+    +-- error
+       +-- uses error-info
+
+  structure nma-a2u-task-list-response
+    +-- task* [task-id]
+    |  +-- uses task-object
+    +-- limit?                      uint32
+    +-- offset?                     uint32
+    +-- total-count?                uint32
+
+  structure nma-a2u-confirmation-resolution-request
+    +-- request-id?                 string
+    +-- correlation-id?             string
+    +-- tenant-id?                  string
+    +-- idempotency-key?            string
+    +-- confirmation-id             string
+    +-- action                      confirmation-action
+    +-- modified-params-schema?     inet:uri
+    +-- modified-params?            anydata
+    +-- resolved-by?                string
+
+  structure nma-a2u-confirmation-resolution-response
+    +-- confirmation-id?            string
+    +-- task-id?                    string
+    +-- status?                     confirmation-status
+    +-- task-state?                 task-state
+    +-- error
+       +-- uses error-info
+
+  structure nma-a2u-abort-task-request
+    +-- request-id?                 string
+    +-- correlation-id?             string
+    +-- tenant-id?                  string
+    +-- idempotency-key?            string
+    +-- reason?                     string
+
+  structure nma-a2u-abort-task-response
+    +-- task-id?                    string
+    +-- state?                      task-state
+    +-- error
+       +-- uses error-info
+
+  structure nma-a2u-error
+    +-- uses error-info]]></artwork>
+      </figure>
+    </section>
+    <section anchor="yang-module">
+      <name>YANG Module</name>
+      <sourcecode type="yang" name="ietf-nma-a2u@2026-06-30.yang"><![CDATA[module ietf-nma-a2u {
+  yang-version 1.1;
+  namespace "urn:ietf:params:xml:ns:yang:ietf-nma-a2u";
+  prefix nmaa2u;
+
+  import ietf-yang-types {
+    prefix yang;
+    reference "RFC 6991.";
+  }
+
+  import ietf-inet-types {
+    prefix inet;
+    reference "RFC 6991.";
+  }
+
+  import ietf-yang-structure-ext {
+    prefix sx;
+    reference "RFC 8791.";
+  }
+
+  organization
+    "IETF NMOP Working Group";
+
+  contact
+    "WG Web:  <https://datatracker.ietf.org/wg/nmop/>
+     WG List: <mailto:nmop@ietf.org>
+
+     Editor:  Xing Zhao
+              <mailto:zhaoxing@caict.ac.cn>";
+
+  description
+    "This module defines abstract data structures for the
+     Agent-to-User (A2U) interface of a Network Management Agent
+     (NMA).  The structures are used as information objects and
+     message bodies exchanged between a non-agent A2U client and
+     an NMA.";
+
+  revision 2026-06-30 {
+    description
+      "Initial revision.";
+    reference
+      "RFC XXXX: Framework and YANG Data Model for the NMA A2U
+       Interface.";
+  }
+
+  /*
+   * Typedefs
+   */
+
+  typedef autonomy-level {
+    type enumeration {
+      enum L0 {
+        description "Manual operation.";
+      }
+      enum L1 {
+        description "Assisted operation.";
+      }
+      enum L2 {
+        description "Partial automation.";
+      }
+      enum L3 {
+        description "Conditional automation.";
+      }
+      enum L4 {
+        description "High automation.";
+      }
+      enum L5 {
+        description "Full automation.";
+      }
+    }
+    description
+      "Autonomy level supported by an NMA capability or policy.";
+  }
+
+  typedef intent-mode {
+    type enumeration {
+      enum natural-language {
+        description "Intent expressed using natural language.";
+      }
+      enum structured {
+        description "Intent expressed using structured data.";
+      }
+    }
+    description
+      "Intent input mode.";
+  }
+
+  typedef intent-type {
+    type enumeration {
+      enum CREATE {
+        description
+          "Create a service, resource, policy, or other managed object.";
+      }
+      enum DELETE {
+        description
+          "Delete a service, resource, policy, or other managed object.";
+      }
+      enum MODIFY {
+        description
+          "Modify an existing service, resource, policy, or other
+           managed object.";
+      }
+      enum QUERY {
+        description
+          "Query status, state, inventory, performance, or other
+           management information.";
+      }
+      enum REPORT {
+        description
+          "Generate a report based on network, service, or operational
+           data.";
+      }
+      enum DIAGNOSE {
+        description
+          "Analyze symptoms, alarms, performance data, or events to
+           identify possible root causes.";
+      }
+      enum REMEDIATE {
+        description
+          "Perform corrective or recovery actions for a detected fault,
+           degradation, or abnormal condition.";
+      }
+      enum OPTIMIZE {
+        description
+          "Optimize service or network behavior according to performance,
+           efficiency, cost, energy, capacity, or policy objectives.";
+      }
+      enum ASSURE {
+        description
+          "Assure a service, slice, resource, or policy objective by
+           monitoring its state and taking or recommending actions when
+           needed.";
+      }
+    }
+    description
+      "High-level structured intent operation category.  Domain-specific
+       subtypes and constraints are carried in the constraints payload.";
+  }
+
+  typedef task-state {
+    type enumeration {
+      enum PENDING {
+        description "Task has been created and is awaiting processing.";
+      }
+      enum ANALYZING {
+        description "The NMA is analyzing the intent.";
+      }
+      enum AWAITING_CLARIFICATION {
+        description "Additional information is required.";
+      }
+      enum PLANNING {
+        description "The NMA is generating an execution plan.";
+      }
+      enum AWAITING_CONFIRMATION {
+        description "The task is suspended until confirmation is resolved.";
+      }
+      enum EXECUTING {
+        description "The NMA is executing the task.";
+      }
+      enum COMPLETED {
+        description "The task has completed successfully.";
+      }
+      enum FAILED {
+        description "The task has failed.";
+      }
+      enum ABORTED {
+        description "The task has been aborted.";
+      }
+    }
+    description
+      "Task lifecycle state.";
+  }
+
+  typedef confirmation-type {
+    type enumeration {
+      enum EXECUTION {
+        description "Confirmation before executing an action.";
+      }
+      enum PARAMETER_CHANGE {
+        description "Confirmation of parameter changes.";
+      }
+      enum DESTRUCTIVE_OPERATION {
+        description
+          "Confirmation of a destructive or service-affecting operation.";
+      }
+      enum POLICY_VIOLATION {
+        description
+          "Confirmation of an action that violates or exceeds a policy.";
+      }
+    }
+    description
+      "Confirmation type.";
+  }
+
+  typedef nma-a2u-event-type {
+    type enumeration {
+      enum intent-received {
+        description "The intent has been received.";
+      }
+      enum intent-parsed {
+        description "The intent has been parsed.";
+      }
+      enum intent-clarification-required {
+        description "Clarification is required for the intent.";
+      }
+      enum intent-rejected {
+        description "The intent has been rejected.";
+      }
+      enum plan-generated {
+        description "An execution plan has been generated.";
+      }
+      enum confirmation-required {
+        description "Confirmation is required.";
+      }
+      enum step-started {
+        description "A plan step has started.";
+      }
+      enum step-completed {
+        description "A plan step has completed.";
+      }
+      enum step-failed {
+        description "A plan step has failed.";
+      }
+      enum task-completed {
+        description "The task has completed.";
+      }
+      enum task-failed {
+        description "The task has failed.";
+      }
+      enum task-suspended {
+        description "The task has been suspended.";
+      }
+    }
+    description
+      "A2U event type.";
+  }
+
+  typedef parser-type {
+    type enumeration {
+      enum llm {
+        description "LLM-based parser.";
+      }
+      enum rule {
+        description "Rule-based parser.";
+      }
+      enum hybrid {
+        description "Hybrid parser.";
+      }
+    }
+    description
+      "Parser type used for natural-language intent interpretation.";
+  }
+
+  typedef step-state {
+    type enumeration {
+      enum pending {
+        description "Step is pending.";
+      }
+      enum running {
+        description "Step is running.";
+      }
+      enum completed {
+        description "Step has completed.";
+      }
+      enum failed {
+        description "Step has failed.";
+      }
+      enum skipped {
+        description "Step has been skipped.";
+      }
+    }
+    description
+      "Plan step state.";
+  }
+
+  typedef confirmation-action {
+    type enumeration {
+      enum approve {
+        description "Approve the proposed action.";
+      }
+      enum reject {
+        description "Reject the proposed action.";
+      }
+      enum modify-and-approve {
+        description "Modify parameters and approve the action.";
+      }
+      enum escalate-to-human {
+        description "Escalate the decision to a human operator.";
+      }
+    }
+    description
+      "Confirmation resolution action.";
+  }
+
+  typedef confirmation-status {
+    type enumeration {
+      enum pending {
+        description "Confirmation is waiting for resolution.";
+      }
+      enum approved {
+        description "Confirmation has been approved.";
+      }
+      enum rejected {
+        description "Confirmation has been rejected.";
+      }
+      enum modified {
+        description "Confirmation has been modified and approved.";
+      }
+      enum expired {
+        description "Confirmation has expired.";
+      }
+      enum escalated {
+        description "Confirmation has been escalated.";
+      }
+    }
+    description
+      "Confirmation status.";
+  }
+
+  typedef error-type {
+    type enumeration {
+      enum invalid-request {
+        description "The request is invalid.";
+      }
+      enum unauthorized {
+        description "Authentication is required or has failed.";
+      }
+      enum forbidden {
+        description "The requester is not authorized.";
+      }
+      enum not-found {
+        description "The requested object was not found.";
+      }
+      enum conflict {
+        description "The request conflicts with the current state.";
+      }
+      enum unprocessable-content {
+        description "The request cannot be processed semantically.";
+      }
+      enum internal-error {
+        description "An internal error occurred.";
+      }
+    }
+    description
+      "A2U error type.";
+  }
+
+  /*
+   * Common groupings
+   */
+
+  grouping submitter-info {
+    description
+      "Information about the user or non-agent upper-layer system that
+       submitted the request.";
+
+    leaf type {
+      type enumeration {
+        enum user {
+          description "Human user.";
+        }
+        enum system {
+          description "Non-agent upper-layer system.";
+        }
+      }
+      description
+        "Submitter type.  The system value represents a non-agent
+         upper-layer system.";
+    }
+
+    leaf id {
+      type string;
+      description
+        "Submitter identifier.";
+    }
+  }
+
+  grouping message-metadata {
+    description
+      "Common metadata used for request correlation, tenancy context,
+       and retry handling.";
+
+    leaf request-id {
+      type string;
+      description
+        "Identifier of the request.";
+    }
+
+    leaf correlation-id {
+      type string;
+      description
+        "Identifier used to correlate related A2U interactions.";
+    }
+
+    leaf tenant-id {
+      type string;
+      description
+        "Identifier of the tenant, customer, organization, project,
+         administrative domain, or other management context associated
+         with the request.";
+    }
+
+    leaf idempotency-key {
+      type string;
+      description
+        "Key used to avoid duplicate processing when a request is retried.";
+    }
+  }
+
+  grouping error-info {
+    description
+      "Common error information returned by the A2U interface.";
+
+    leaf error-type {
+      type error-type;
+      description "Error type.";
+    }
+
+    leaf error-code {
+      type string;
+      description "Machine-readable error code.";
+    }
+
+    leaf error-message {
+      type string;
+      description "Human-readable error message.";
+    }
+
+    leaf retryable {
+      type boolean;
+      default "false";
+      description "Whether retry may succeed.";
+    }
+
+    leaf target {
+      type string;
+      description "Target object or field related to the error.";
+    }
+
+    anydata details {
+      description "Additional error details.";
+    }
+  }
+
+  /*
+   * Core object groupings
+   */
+
+  grouping agent-capabilities-object {
+    description
+      "Capability discovery information exposed by the NMA.";
+
+    leaf agent-id {
+      type string;
+      mandatory true;
+      description "NMA identifier.";
+    }
+
+    leaf version {
+      type string;
+      mandatory true;
+      description "NMA version.";
+    }
+
+    list skills {
+      key "skill-id";
+      description "Skills exposed by the NMA.";
+
+      leaf skill-id {
+        type string;
+        description "Skill identifier.";
+      }
+
+      leaf name {
+        type string;
+        mandatory true;
+        description "Human-readable skill name.";
+      }
+
+      leaf description {
+        type string;
+        description "Skill description.";
+      }
+
+      leaf input-schema {
+        type union {
+          type inet:uri;
+          type string;
+        }
+        description
+          "Input schema URI or inline schema description.";
+      }
+
+      leaf confirmation-required {
+        type boolean;
+        default "false";
+        description
+          "Whether this skill normally requires confirmation before
+           execution.";
+      }
+
+      leaf max-autonomy-level {
+        type autonomy-level;
+        mandatory true;
+        description
+          "Maximum autonomy level supported by this skill.";
+      }
+
+      leaf-list tags {
+        type string;
+        description
+          "Optional tags used to classify or discover this skill.";
+      }
+    }
+
+    list endpoints {
+      key "name";
+      description "A2U endpoints advertised by the NMA.";
+
+      leaf name {
+        type string;
+        description "Endpoint name.";
+      }
+
+      leaf uri {
+        type inet:uri;
+        mandatory true;
+        description "Endpoint URI.";
+      }
+
+      leaf-list methods {
+        type string;
+        description "Supported methods.";
+      }
+    }
+
+    container policies {
+      description "Global policies advertised by the NMA.";
+
+      leaf default-autonomy-level {
+        type autonomy-level;
+        description "Default autonomy level.";
+      }
+
+      leaf human-in-the-loop {
+        type boolean;
+        default "true";
+        description "Whether human-in-the-loop is enabled by default.";
+      }
+
+      leaf max-timeout-seconds {
+        type uint32;
+        units "seconds";
+        description "Maximum timeout in seconds.";
+      }
+    }
+  }
+
+  grouping intent-object {
+    description
+      "Intent submitted to the NMA.";
+
+    leaf intent-id {
+      type string;
+      description "Intent identifier.";
+    }
+
+    leaf mode {
+      type intent-mode;
+      mandatory true;
+      description "Intent input mode.";
+    }
+
+    container submitter {
+      description "Submitter information.";
+      uses submitter-info;
+    }
+
+    leaf timestamp {
+      type yang:date-and-time;
+      description "Submission timestamp.";
+    }
+
+    leaf state {
+      type task-state;
+      description "Current processing state associated with this intent.";
+    }
+
+    leaf task-id {
+      type string;
+      description "Associated task identifier.";
+    }
+
+    choice mode-choice {
+      description "Mode-specific intent content.";
+
+      case natural-language {
+        container natural-language {
+          description "Natural-language input.";
+
+          leaf text {
+            type string;
+            mandatory true;
+            description "Natural-language text submitted by the user or system.";
+          }
+
+          leaf parsed-result-schema {
+            type inet:uri;
+            description "Schema used to interpret parsed-result.";
+          }
+
+          anydata parsed-result {
+            description "Parsed structured representation of the input.";
+          }
+
+          leaf parser {
+            type parser-type;
+            description "Parser used to interpret the natural-language input.";
+          }
+        }
+      }
+
+      case structured {
+        container structured {
+          description "Structured input.";
+
+          leaf type {
+            type intent-type;
+            mandatory true;
+            description "High-level operation category.";
+          }
+
+          leaf target-resource {
+            type string;
+            description "Target service, resource, slice, domain, or object.";
+          }
+
+          leaf constraints-schema {
+            type inet:uri;
+            description "Schema used to interpret constraints.";
+          }
+
+          anydata constraints {
+            mandatory true;
+            description "Domain-specific constraints.";
+          }
+
+          leaf priority {
+            type uint8 {
+              range "1..10";
+            }
+            default "5";
+            description "Intent priority.";
+          }
+        }
+      }
+    }
+
+    leaf estimated-completion {
+      type uint32;
+      units "seconds";
+      description "Estimated completion time.";
+    }
+  }
+
+  grouping plan-step {
+    description
+      "A step in a task execution plan.";
+
+    leaf step-id {
+      type string;
+      description "Step identifier.";
+    }
+
+    leaf action {
+      type string;
+      mandatory true;
+      description "Action to be performed.";
+    }
+
+    leaf target {
+      type string;
+      description "Target of the action.";
+    }
+
+    anydata input-params {
+      description "Step input parameters.";
+    }
+
+    leaf status {
+      type step-state;
+      mandatory true;
+      description "Step status.";
+    }
+
+    leaf observation {
+      type string;
+      description "Observation or result generated by this step.";
+    }
+
+    leaf started-at {
+      type yang:date-and-time;
+      description "Step start time.";
+    }
+
+    leaf completed-at {
+      type yang:date-and-time;
+      description "Step completion time.";
+    }
+  }
+
+  grouping task-object {
+    description
+      "Task lifecycle information.";
+
+    leaf task-id {
+      type string;
+      description "Task identifier.";
+    }
+
+    leaf parent-intent-id {
+      type string;
+      mandatory true;
+      description "Identifier of the parent intent.";
+    }
+
+    leaf state {
+      type task-state;
+      mandatory true;
+      description "Current task state.";
+    }
+
+    leaf created-at {
+      type yang:date-and-time;
+      mandatory true;
+      description "Task creation time.";
+    }
+
+    leaf updated-at {
+      type yang:date-and-time;
+      mandatory true;
+      description "Last task update time.";
+    }
+
+    list plan {
+      key "step-id";
+      description "Execution plan.";
+      uses plan-step;
+    }
+
+    container result {
+      description "Task result.";
+
+      leaf success {
+        type boolean;
+        description "Whether the task succeeded.";
+      }
+
+      leaf summary {
+        type string;
+        description "Result summary.";
+      }
+
+      leaf-list affected-resources {
+        type string;
+        description "Resources affected by the task.";
+      }
+
+      anydata output-data {
+        description "Structured output data.";
+      }
+    }
+
+    list audit-log {
+      key "log-id";
+      description "Task audit log.";
+
+      leaf log-id {
+        type string;
+        description "Log entry identifier.";
+      }
+
+      leaf timestamp {
+        type yang:date-and-time;
+        mandatory true;
+        description "Log timestamp.";
+      }
+
+      leaf actor {
+        type string;
+        mandatory true;
+        description "Actor that performed the action.";
+      }
+
+      leaf action {
+        type string;
+        mandatory true;
+        description "Audited action.";
+      }
+
+      leaf details {
+        type string;
+        description "Additional log details.";
+      }
+    }
+  }
+
+  grouping confirmation-object {
+    description
+      "Confirmation information used for human-in-the-loop or
+       system-in-the-loop decision making.";
+
+    leaf confirmation-id {
+      type string;
+      description "Confirmation identifier.";
+    }
+
+    leaf task-id {
+      type string;
+      mandatory true;
+      description "Associated task identifier.";
+    }
+
+    leaf type {
+      type confirmation-type;
+      mandatory true;
+      description "Confirmation type.";
+    }
+
+    leaf priority {
+      type uint8 {
+        range "1..10";
+      }
+      default "5";
+      description "Confirmation priority.";
+    }
+
+    leaf timeout-seconds {
+      type uint32;
+      default "300";
+      units "seconds";
+      description "Timeout for resolving the confirmation.";
+    }
+
+    leaf context-schema {
+      type inet:uri;
+      description "Schema used to interpret context.";
+    }
+
+    anydata context {
+      mandatory true;
+      description "Context needed to resolve the confirmation.";
+    }
+
+    leaf-list allowed-actions {
+      type confirmation-action;
+      min-elements 1;
+      description "Actions allowed for this confirmation.";
+    }
+
+    leaf status {
+      type confirmation-status;
+      default "pending";
+      description "Confirmation status.";
+    }
+
+    container resolution {
+      description "Final resolution of the confirmation.";
+
+      leaf action {
+        type confirmation-action;
+        description "Selected resolution action.";
+      }
+
+      leaf modified-params-schema {
+        type inet:uri;
+        description "Schema used to interpret modified-params.";
+      }
+
+      anydata modified-params {
+        description "Modified parameters.";
+      }
+
+      leaf resolved-by {
+        type string;
+        description "Resolver identifier.";
+      }
+
+      leaf resolved-at {
+        type yang:date-and-time;
+        description "Resolution time.";
+      }
+    }
+  }
+
+  grouping event-object {
+    description
+      "A2U event information.";
+
+    leaf event-id {
+      type string;
+      description "Event identifier.";
+    }
+
+    leaf event-type {
+      type nma-a2u-event-type;
+      mandatory true;
+      description "Event type.";
+    }
+
+    leaf task-id {
+      type string;
+      mandatory true;
+      description "Associated task identifier.";
+    }
+
+    leaf timestamp {
+      type yang:date-and-time;
+      mandatory true;
+      description "Event timestamp.";
+    }
+
+    leaf recipient {
+      type string;
+      description "Intended event recipient.";
+    }
+
+    container payload {
+      description "Event-specific payload.";
+
+      choice event-payload {
+        description "Payload selected according to event type.";
+
+        case intent-receipt {
+          container intent-receipt {
+            leaf accepted {
+              type boolean;
+              mandatory true;
+              description "Whether the intent was accepted.";
+            }
+
+            leaf estimated-processing-time {
+              type uint32;
+              units "seconds";
+              description "Estimated processing time.";
+            }
+          }
+        }
+
+        case clarification-request {
+          container clarification-request {
+            leaf-list missing-fields {
+              type string;
+              description "Missing fields.";
+            }
+
+            leaf-list ambiguous-fields {
+              type string;
+              description "Ambiguous fields.";
+            }
+
+            leaf-list questions {
+              type string;
+              description "Clarification questions.";
+            }
+          }
+        }
+
+        case rejection {
+          container rejection {
+            leaf reason-code {
+              type string;
+              mandatory true;
+              description "Rejection reason code.";
+            }
+
+            leaf explanation {
+              type string;
+              mandatory true;
+              description "Rejection explanation.";
+            }
+          }
+        }
+
+        case plan-generated {
+          container plan-generated {
+            leaf step-count {
+              type uint32;
+              mandatory true;
+              description "Number of generated plan steps.";
+            }
+
+            leaf estimated-duration {
+              type uint32;
+              units "seconds";
+              description "Estimated execution duration.";
+            }
+          }
+        }
+
+        case confirmation-required {
+          container confirmation-required {
+            leaf confirmation-id {
+              type string;
+              mandatory true;
+              description "Required confirmation identifier.";
+            }
+          }
+        }
+
+        case step-completed {
+          container step-completed {
+            leaf step-id {
+              type string;
+              mandatory true;
+              description "Completed step identifier.";
+            }
+
+            leaf observation {
+              type string;
+              description "Step observation.";
+            }
+          }
+        }
+
+        case step-failed {
+          container step-failed {
+            leaf step-id {
+              type string;
+              mandatory true;
+              description "Failed step identifier.";
+            }
+
+            leaf exception-type {
+              type string;
+              mandatory true;
+              description "Exception type.";
+            }
+
+            leaf affected-scope {
+              type string;
+              description "Affected scope.";
+            }
+
+            leaf-list remedial-suggestions {
+              type string;
+              description "Suggested remedial actions.";
+            }
+          }
+        }
+
+        case task-completed {
+          container task-completed {
+            leaf summary {
+              type string;
+              mandatory true;
+              description "Task completion summary.";
+            }
+
+            leaf-list affected-resources {
+              type string;
+              description "Affected resources.";
+            }
+          }
+        }
+
+        case task-failed {
+          container task-failed {
+            leaf reason {
+              type string;
+              mandatory true;
+              description "Task failure reason.";
+            }
+
+            leaf failed-step-id {
+              type string;
+              description "Failed step identifier.";
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /*
+   * Abstract structures.
+   * Only the top-level structures use the nma-a2u- prefix.
+   */
+
+  sx:structure nma-a2u-agent-capabilities {
+    description "A2U agent capabilities structure.";
+    uses agent-capabilities-object;
+  }
+
+  sx:structure nma-a2u-intent {
+    description "A2U intent structure.";
+    uses intent-object;
+  }
+
+  sx:structure nma-a2u-task {
+    description "A2U task structure.";
+    uses task-object;
+  }
+
+  sx:structure nma-a2u-confirmation {
+    description "A2U confirmation structure.";
+    uses confirmation-object;
+  }
+
+  sx:structure nma-a2u-event {
+    description "A2U event structure.";
+    uses event-object;
+  }
+
+  sx:structure nma-a2u-submit-intent-request {
+    description "Request body for intent submission.";
+    uses message-metadata;
+
+    container intent {
+      description "Submitted intent.";
+      uses intent-object;
+    }
+  }
+
+  sx:structure nma-a2u-submit-intent-response {
+    description "Response body for intent submission.";
+    uses message-metadata;
+
+    leaf accepted {
+      type boolean;
+      mandatory true;
+      description "Whether the intent was accepted.";
+    }
+
+    leaf intent-id {
+      type string;
+      description "Accepted intent identifier.";
+    }
+
+    leaf task-id {
+      type string;
+      description "Created or associated task identifier.";
+    }
+
+    leaf state {
+      type task-state;
+      description "Current task state.";
+    }
+
+    container task {
+      description "Task information.";
+      uses task-object;
+    }
+
+    container error {
+      description "Error information.";
+      uses error-info;
+    }
+  }
+
+  sx:structure nma-a2u-task-list-response {
+    description "Response body for task listing.";
+
+    list task {
+      key "task-id";
+      description "Task entry.";
+      uses task-object;
+    }
+
+    leaf limit {
+      type uint32;
+      description "Returned result limit.";
+    }
+
+    leaf offset {
+      type uint32;
+      description "Returned result offset.";
+    }
+
+    leaf total-count {
+      type uint32;
+      description "Total number of matching tasks.";
+    }
+  }
+
+  sx:structure nma-a2u-confirmation-resolution-request {
+    description "Request body for confirmation resolution.";
+    uses message-metadata;
+
+    leaf confirmation-id {
+      type string;
+      mandatory true;
+      description "Confirmation identifier.";
+    }
+
+    leaf action {
+      type confirmation-action;
+      mandatory true;
+      description "Selected resolution action.";
+    }
+
+    leaf modified-params-schema {
+      type inet:uri;
+      description "Schema used to interpret modified-params.";
+    }
+
+    anydata modified-params {
+      description "Modified parameters.";
+    }
+
+    leaf resolved-by {
+      type string;
+      description "Resolver identifier.";
+    }
+  }
+
+  sx:structure nma-a2u-confirmation-resolution-response {
+    description "Response body for confirmation resolution.";
+
+    leaf confirmation-id {
+      type string;
+      description "Confirmation identifier.";
+    }
+
+    leaf task-id {
+      type string;
+      description "Associated task identifier.";
+    }
+
+    leaf status {
+      type confirmation-status;
+      description "Updated confirmation status.";
+    }
+
+    leaf task-state {
+      type task-state;
+      description "Updated task state.";
+    }
+
+    container error {
+      description "Error information.";
+      uses error-info;
+    }
+  }
+
+  sx:structure nma-a2u-abort-task-request {
+    description "Request body for task abort.";
+    uses message-metadata;
+
+    leaf reason {
+      type string;
+      description "Reason for aborting the task.";
+    }
+  }
+
+  sx:structure nma-a2u-abort-task-response {
+    description "Response body for task abort.";
+
+    leaf task-id {
+      type string;
+      description "Task identifier.";
+    }
+
+    leaf state {
+      type task-state;
+      description "Updated task state.";
+    }
+
+    container error {
+      description "Error information.";
+      uses error-info;
+    }
+  }
+
+  sx:structure nma-a2u-error {
+    description "A2U error structure.";
+    uses error-info;
+  }
+
+  notification a2u-event-notification {
+    description "Optional YANG notification form of an A2U event.";
+    uses event-object;
+  }
+}
+]]></sourcecode>
+    </section>
+    </section>
+    <section anchor="security-considerations">
+      <name>Security Considerations</name>
+      <t>The A2U interface can expose sensitive operational information, including intents, tasks, plans, affected resources, confirmation context, event streams, and audit information.</t>
+      <t>Implementations are expected to provide authentication, authorization, confidentiality protection, integrity protection, replay protection, audit logging, and policy enforcement.</t>
+      <t>Natural-language inputs and AI-assisted interpretation may introduce risks such as ambiguous instructions, malicious input, prompt injection, or incorrect interpretation. Implementations should validate interpreted results before execution and should use confirmation or policy checks for risky operations.</t>
+      <t>Confirmation resolution operations can affect network behavior and therefore require authorization and audit logging.</t>
+      <t>Event streams may contain sensitive operational information. Implementations should ensure that event subscribers are authorized to receive the corresponding events.</t>
+      <t>Future versions of this document are expected to expand this section.</t>
+    </section>
+    <section anchor="iana-considerations">
+      <name>IANA Considerations</name>
+      <t>This version of the document does not request any IANA actions.</t>
+      <t>Future versions may request registration of the YANG module namespace and module name if the YANG module becomes normative.</t>
+      <t>Expected future namespace:</t>
+      <sourcecode><![CDATA[urn:ietf:params:xml:ns:yang:ietf-nma-a2u]]></sourcecode>
+      <t>Expected future module name:</t>
+      <sourcecode><![CDATA[ietf-nma-a2u]]></sourcecode>
+    </section>
+  </middle>
+  <back>
+
+    <references>
+      <name>Normative References</name>
+      <reference anchor="RFC6991" target="https://www.rfc-editor.org/rfc/rfc6991">
+        <front>
+          <title>Common YANG Data Types</title>
+          <author initials="J." surname="Schoenwaelder" fullname="Juergen Schoenwaelder"/>
+          <date month="July" year="2013"/>
+        </front>
+        <seriesInfo name="RFC" value="6991"/>
+      </reference>
+      <reference anchor="RFC7950" target="https://www.rfc-editor.org/rfc/rfc7950">
+        <front>
+          <title>The YANG 1.1 Data Modeling Language</title>
+          <author initials="M." surname="Bjorklund" fullname="Martin Bjorklund"/>
+          <date month="August" year="2016"/>
+        </front>
+        <seriesInfo name="RFC" value="7950"/>
+      </reference>
+      <reference anchor="RFC8791" target="https://www.rfc-editor.org/rfc/rfc8791">
+        <front>
+          <title>YANG Data Structure Extensions</title>
+          <author initials="A." surname="Bierman" fullname="Andy Bierman"/>
+          <author initials="M." surname="Bjorklund" fullname="Martin Bjorklund"/>
+          <author initials="K." surname="Watsen" fullname="Kent Watsen"/>
+          <date month="June" year="2020"/>
+        </front>
+        <seriesInfo name="RFC" value="8791"/>
+      </reference>
+    </references>
+
+    <references>
+      <name>Informative References</name>
+      <reference anchor="RFC8639" target="https://www.rfc-editor.org/rfc/rfc8639">
+        <front>
+          <title>Subscription to YANG Notifications</title>
+          <author initials="E." surname="Voit" fullname="Eric Voit"/>
+          <date month="September" year="2019"/>
+        </front>
+        <seriesInfo name="RFC" value="8639"/>
+      </reference>
+      <reference anchor="RFC8969" target="https://www.rfc-editor.org/rfc/rfc8969">
+        <front>
+          <title>A Framework for Automating Service and Network Management with YANG</title>
+          <author initials="Q." surname="Wu" fullname="Qin Wu"/>
+          <date month="January" year="2021"/>
+        </front>
+        <seriesInfo name="RFC" value="8969"/>
+      </reference>
+      <reference anchor="RFC9315" target="https://www.rfc-editor.org/rfc/rfc9315">
+        <front>
+          <title>Intent-Based Networking - Concepts and Definitions</title>
+          <author initials="A." surname="Clemm" fullname="Alexander Clemm"/>
+          <date month="October" year="2022"/>
+        </front>
+        <seriesInfo name="RFC" value="9315"/>
+      </reference>
+      <reference anchor="RFC9907" target="https://www.rfc-editor.org/rfc/rfc9907">
+        <front>
+          <title>Guidelines for Authors and Reviewers of Documents Containing YANG Data Models</title>
+          <author initials="A." surname="Bierman" fullname="Andy Bierman"/>
+          <author initials="M." surname="Bjorklund" fullname="Martin Bjorklund"/>
+          <author initials="K." surname="Watsen" fullname="Kent Watsen"/>
+          <date month="August" year="2025"/>
+        </front>
+        <seriesInfo name="RFC" value="9907"/>
+      </reference>
+      <reference anchor="I-D.zhao-nmop-network-management-agent" target="https://datatracker.ietf.org/doc/draft-zhao-nmop-network-management-agent/">
+        <front>
+          <title>AI based Network Management Agent (NMA): Concepts and Architecture</title>
+          <author initials="X." surname="Zhao" fullname="Xing Zhao"/>
+          <date month="February" year="2026"/>
+        </front>
+        <seriesInfo name="Internet-Draft" value="draft-zhao-nmop-network-management-agent"/>
+      </reference>
+    </references>
+    <section anchor="appendix-http-binding">
+      <name>Example HTTP-Based Binding</name>
+      <t>This appendix describes one possible HTTP-based realization of the A2U interface. It is provided as an example protocol binding and is not intended to mandate HTTP as the only implementation mechanism.</t>
+    <section anchor="appendix-http-general">
+      <name>General Rules</name>
+      <t>In this example binding:</t>
+      <ul>
+        <li>A2U resources use the /nma/a2u/* URI space;</li>
+        <li>RESTCONF resources may use the /restconf/* URI space;</li>
+        <li>JSON is used for request and response bodies;</li>
+        <li>Server-Sent Events (SSE) may be used for event streaming;</li>
+        <li>TLS, authentication, authorization, and audit logging are required by the implementation.</li>
+      </ul>
+    </section>
+    <section anchor="appendix-capability-discovery">
+      <name>Capability Discovery</name>
+      <sourcecode><![CDATA[GET /nma/a2u/agent-capabilities]]></sourcecode>
+      <t>Response body: nma-a2u-agent-capabilities.</t>
+    </section>
+    <section anchor="appendix-intent-submission">
+      <name>Intent Submission</name>
+      <sourcecode><![CDATA[POST /nma/a2u/intent]]></sourcecode>
+      <t>Request body: nma-a2u-submit-intent-request.</t>
+      <t>Response body: nma-a2u-submit-intent-response.</t>
+      <t>Possible responses include:</t>
+      <ul>
+        <li>200 OK for synchronous result;</li>
+        <li>202 Accepted for asynchronous task creation;</li>
+        <li>200 OK with text/event-stream for streaming scenarios.</li>
+      </ul>
+    </section>
+    <section anchor="appendix-task-retrieval">
+      <name>Task Retrieval</name>
+      <sourcecode><![CDATA[GET /nma/a2u/tasks/{task-id}]]></sourcecode>
+      <t>Response body: nma-a2u-task.</t>
+    </section>
+    <section anchor="appendix-task-listing">
+      <name>Task Listing</name>
+      <sourcecode><![CDATA[GET /nma/a2u/tasks]]></sourcecode>
+      <t>Response body: nma-a2u-task-list-response.</t>
+      <t>Optional query parameters include state, submitter-id, limit, and offset.</t>
+    </section>
+    <section anchor="appendix-event-subscription">
+      <name>Event Subscription</name>
+      <sourcecode><![CDATA[GET /nma/a2u/tasks/{task-id}/events]]></sourcecode>
+      <t>Response body: SSE stream carrying nma-a2u-event objects.</t>
+      <t>Example SSE frame:</t>
+      <sourcecode><![CDATA[id: <event-id>
+event: <event-type>
+data: <JSON-encoded nma-a2u-event>]]></sourcecode>
+    </section>
+    <section anchor="appendix-confirmation-resolution">
+      <name>Confirmation Resolution</name>
+      <sourcecode><![CDATA[POST /nma/a2u/confirm]]></sourcecode>
+      <t>Request body: nma-a2u-confirmation-resolution-request.</t>
+      <t>Response body: nma-a2u-confirmation-resolution-response.</t>
+    </section>
+    <section anchor="appendix-task-abort">
+      <name>Task Abort</name>
+      <sourcecode><![CDATA[POST /nma/a2u/tasks/{task-id}/abort]]></sourcecode>
+      <t>Request body: nma-a2u-abort-task-request.</t>
+      <t>Response body: nma-a2u-abort-task-response.</t>
+    </section>
+    </section>
+    <section anchor="appendix-json-examples">
+      <name>JSON Examples</name>
+      <t>This appendix provides non-normative JSON examples for an OTN fault handling and service assurance scenario.</t>
+      <t>In this example, an OSS detects degradation of an OTN service and invokes the NMA through A2U. The NMA analyzes alarms and performance data, correlates service impact, identifies the likely root cause, generates a recovery plan, requests confirmation, and reports task progress through events.</t>
+    <section anchor="appendix-agent-capabilities">
+      <name>Agent Capabilities</name>
+      <sourcecode type="json"><![CDATA[{
+  "agent-id": "nma-transport-1",
+  "version": "0.1.0",
+  "skills": [
+    {
+      "skill-id": "otn-fault-handling",
+      "name": "OTN fault handling",
+      "description": "Analyze OTN alarms, performance degradation, and service impact, and propose or execute recovery actions.",
+      "input-schema": "urn:example:schemas:otn-fault-handling-input",
+      "confirmation-required": true,
+      "max-autonomy-level": "L3",
+      "tags": [
+        "transport",
+        "otn",
+        "fault",
+        "remediation"
+      ]
+    },
+    {
+      "skill-id": "otn-service-assurance",
+      "name": "OTN service assurance",
+      "description": "Assure OTN service SLA by monitoring service health and recommending corrective actions.",
+      "input-schema": "urn:example:schemas:otn-service-assurance-input",
+      "confirmation-required": true,
+      "max-autonomy-level": "L3",
+      "tags": [
+        "transport",
+        "otn",
+        "sla",
+        "assurance"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "name": "intent-submission",
+      "uri": "/nma/a2u/intent",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "name": "task-retrieval",
+      "uri": "/nma/a2u/tasks/{task-id}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "name": "task-event-stream",
+      "uri": "/nma/a2u/tasks/{task-id}/events",
+      "methods": [
+        "GET"
+      ]
+    }
+  ],
+  "policies": {
+    "default-autonomy-level": "L3",
+    "human-in-the-loop": true,
+    "max-timeout-seconds": 1800
+  }
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-natural-language-fault-handling-intent">
+      <name>Natural-Language Fault Handling Intent</name>
+      <sourcecode type="json"><![CDATA[{
+  "request-id": "req-1001",
+  "correlation-id": "corr-20260630-001",
+  "tenant-id": "tenant-1",
+  "idempotency-key": "idem-1001",
+  "intent": {
+    "intent-id": "intent-1001",
+    "mode": "natural-language",
+    "submitter": {
+      "type": "system",
+      "id": "oss-a"
+    },
+    "timestamp": "2026-06-30T10:00:00Z",
+    "natural-language": {
+      "text": "Analyze the service degradation of OTN service svc-1001, identify the root cause, assess affected resources, and recommend recovery actions."
+    }
+  }
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-structured-fault-handling-intent">
+      <name>Structured Fault Handling Intent</name>
+      <sourcecode type="json"><![CDATA[{
+  "request-id": "req-1002",
+  "correlation-id": "corr-20260630-002",
+  "tenant-id": "tenant-1",
+  "idempotency-key": "idem-1002",
+  "intent": {
+    "intent-id": "intent-1002",
+    "mode": "structured",
+    "submitter": {
+      "type": "system",
+      "id": "orchestrator-a"
+    },
+    "timestamp": "2026-06-30T10:05:00Z",
+    "structured": {
+      "type": "REMEDIATE",
+      "target-resource": "svc-1001",
+      "constraints": {
+        "technology": "OTN",
+        "symptom": "service-degradation",
+        "observed-alarms": [
+          "OTU_LOF",
+          "ODU_AIS"
+        ],
+        "objective": "restore-service",
+        "confirmation-required": true,
+        "avoid-traffic-interruption": true
+      },
+      "priority": 9
+    }
+  }
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-intent-submission-response">
+      <name>Intent Submission Response</name>
+      <sourcecode type="json"><![CDATA[{
+  "request-id": "req-1001",
+  "correlation-id": "corr-20260630-001",
+  "accepted": true,
+  "intent-id": "intent-1001",
+  "task-id": "task-2001",
+  "state": "PENDING"
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-task-object">
+      <name>Task Object</name>
+      <sourcecode type="json"><![CDATA[{
+  "task-id": "task-2001",
+  "parent-intent-id": "intent-1001",
+  "state": "AWAITING_CONFIRMATION",
+  "created-at": "2026-06-30T10:00:00Z",
+  "updated-at": "2026-06-30T10:03:30Z",
+  "plan": [
+    {
+      "step-id": "step-1",
+      "action": "collect-alarms-and-performance-data",
+      "target": "svc-1001",
+      "status": "completed",
+      "observation": "OTU_LOF and ODU_AIS alarms were observed on the working path of service svc-1001.",
+      "started-at": "2026-06-30T10:00:10Z",
+      "completed-at": "2026-06-30T10:00:40Z"
+    },
+    {
+      "step-id": "step-2",
+      "action": "correlate-topology-and-service-impact",
+      "target": "transport-network",
+      "status": "completed",
+      "observation": "The degradation affects service svc-1001 and may impact two dependent client services.",
+      "started-at": "2026-06-30T10:00:40Z",
+      "completed-at": "2026-06-30T10:01:20Z"
+    },
+    {
+      "step-id": "step-3",
+      "action": "identify-root-cause",
+      "target": "node-a/node-b",
+      "status": "completed",
+      "observation": "The likely root cause is signal failure on the working path between node-a and node-b.",
+      "started-at": "2026-06-30T10:01:20Z",
+      "completed-at": "2026-06-30T10:02:00Z"
+    },
+    {
+      "step-id": "step-4",
+      "action": "generate-recovery-plan",
+      "target": "svc-1001",
+      "status": "completed",
+      "observation": "A recovery plan using the protection path has been generated.",
+      "started-at": "2026-06-30T10:02:00Z",
+      "completed-at": "2026-06-30T10:03:00Z"
+    },
+    {
+      "step-id": "step-5",
+      "action": "apply-recovery-action",
+      "target": "svc-1001",
+      "status": "pending",
+      "observation": "Waiting for confirmation before executing the recovery action."
+    }
+  ],
+  "result": {
+    "success": false,
+    "summary": "The root cause has been identified and a recovery action is awaiting confirmation.",
+    "affected-resources": [
+      "svc-1001",
+      "node-a",
+      "node-b",
+      "link-a-b"
+    ]
+  },
+  "audit-log": [
+    {
+      "log-id": "log-1",
+      "timestamp": "2026-06-30T10:00:00Z",
+      "actor": "oss-a",
+      "action": "submit-intent",
+      "details": "Fault handling intent submitted."
+    },
+    {
+      "log-id": "log-2",
+      "timestamp": "2026-06-30T10:03:30Z",
+      "actor": "nma-transport-1",
+      "action": "request-confirmation",
+      "details": "Recovery action requires confirmation before execution."
+    }
+  ]
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-plan-generated-event">
+      <name>Plan-Generated Event</name>
+      <sourcecode type="json"><![CDATA[{
+  "event-id": "event-4001",
+  "event-type": "plan-generated",
+  "task-id": "task-2001",
+  "timestamp": "2026-06-30T10:03:00Z",
+  "recipient": "oss-a",
+  "payload": {
+    "plan-generated": {
+      "step-count": 5,
+      "estimated-duration": 300
+    }
+  }
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-confirmation-required-event">
+      <name>Confirmation-Required Event</name>
+      <sourcecode type="json"><![CDATA[{
+  "event-id": "event-4002",
+  "event-type": "confirmation-required",
+  "task-id": "task-2001",
+  "timestamp": "2026-06-30T10:03:30Z",
+  "recipient": "oss-a",
+  "payload": {
+    "confirmation-required": {
+      "confirmation-id": "conf-5001"
+    }
+  }
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-confirmation-object">
+      <name>Confirmation Object</name>
+      <sourcecode type="json"><![CDATA[{
+  "confirmation-id": "conf-5001",
+  "task-id": "task-2001",
+  "type": "EXECUTION",
+  "priority": 9,
+  "timeout-seconds": 600,
+  "context": {
+    "summary": "Switch service svc-1001 to the protection path to restore service.",
+    "root-cause": "Signal failure on the working path between node-a and node-b.",
+    "affected-resources": [
+      "svc-1001",
+      "node-a",
+      "node-b",
+      "link-a-b"
+    ],
+    "estimated-impact": "A transient service hit of less than 50 ms may occur.",
+    "recommended-action": "activate-protection-path"
+  },
+  "allowed-actions": [
+    "approve",
+    "reject",
+    "modify-and-approve",
+    "escalate-to-human"
+  ],
+  "status": "pending"
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-confirmation-resolution-request">
+      <name>Confirmation Resolution Request</name>
+      <sourcecode type="json"><![CDATA[{
+  "request-id": "req-1003",
+  "correlation-id": "corr-20260630-001",
+  "tenant-id": "tenant-1",
+  "confirmation-id": "conf-5001",
+  "action": "approve",
+  "resolved-by": "operator-a"
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-confirmation-resolution-response">
+      <name>Confirmation Resolution Response</name>
+      <sourcecode type="json"><![CDATA[{
+  "confirmation-id": "conf-5001",
+  "task-id": "task-2001",
+  "status": "approved",
+  "task-state": "EXECUTING"
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-step-completed-event">
+      <name>Step-Completed Event</name>
+      <sourcecode type="json"><![CDATA[{
+  "event-id": "event-4003",
+  "event-type": "step-completed",
+  "task-id": "task-2001",
+  "timestamp": "2026-06-30T10:04:10Z",
+  "recipient": "oss-a",
+  "payload": {
+    "step-completed": {
+      "step-id": "step-5",
+      "observation": "The service has been switched to the protection path."
+    }
+  }
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-task-completed-event">
+      <name>Task-Completed Event</name>
+      <sourcecode type="json"><![CDATA[{
+  "event-id": "event-4004",
+  "event-type": "task-completed",
+  "task-id": "task-2001",
+  "timestamp": "2026-06-30T10:05:00Z",
+  "recipient": "oss-a",
+  "payload": {
+    "task-completed": {
+      "summary": "Service svc-1001 has been restored by activating the protection path.",
+      "affected-resources": [
+        "svc-1001",
+        "node-a",
+        "node-b",
+        "protection-path-1"
+      ]
+    }
+  }
+}]]></sourcecode>
+    </section>
+    <section anchor="appendix-error-response">
+      <name>Error Response</name>
+      <sourcecode type="json"><![CDATA[{
+  "error-type": "unprocessable-content",
+  "error-code": "A2U-VALIDATION-001",
+  "error-message": "The requested recovery action is not allowed because the protection path is unavailable.",
+  "retryable": false,
+  "target": "confirmation.resolution.action",
+  "details": {
+    "requested-action": "activate-protection-path",
+    "reason": "protection-path-unavailable",
+    "alternative-actions": [
+      "manual-dispatch",
+      "escalate-to-human"
+    ]
+  }
+}]]></sourcecode>
+    </section>
+    </section>
+  </back>
+</rfc>

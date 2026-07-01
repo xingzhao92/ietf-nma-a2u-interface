@@ -1,0 +1,1284 @@
+module ietf-nma-a2u {
+  yang-version 1.1;
+  namespace "urn:ietf:params:xml:ns:yang:ietf-nma-a2u";
+  prefix nmaa2u;
+
+  import ietf-yang-types {
+    prefix yang;
+    reference "RFC 6991.";
+  }
+
+  import ietf-inet-types {
+    prefix inet;
+    reference "RFC 6991.";
+  }
+
+  import ietf-yang-structure-ext {
+    prefix sx;
+    reference "RFC 8791.";
+  }
+
+  organization
+    "IETF NMOP Working Group";
+
+  contact
+    "WG Web:  <https://datatracker.ietf.org/wg/nmop/>
+     WG List: <mailto:nmop@ietf.org>
+
+     Editor:  Xing Zhao
+              <mailto:zhaoxing@caict.ac.cn>";
+
+  description
+    "This module defines abstract data structures for the
+     Agent-to-User (A2U) interface of a Network Management Agent
+     (NMA).  The structures are used as information objects and
+     message bodies exchanged between a non-agent A2U client and
+     an NMA.";
+
+  revision 2026-06-30 {
+    description
+      "Initial revision.";
+    reference
+      "RFC XXXX: Framework and YANG Data Model for the NMA A2U
+       Interface.";
+  }
+
+  /*
+   * Typedefs
+   */
+
+  typedef autonomy-level {
+    type enumeration {
+      enum L0 {
+        description "Manual operation.";
+      }
+      enum L1 {
+        description "Assisted operation.";
+      }
+      enum L2 {
+        description "Partial automation.";
+      }
+      enum L3 {
+        description "Conditional automation.";
+      }
+      enum L4 {
+        description "High automation.";
+      }
+      enum L5 {
+        description "Full automation.";
+      }
+    }
+    description
+      "Autonomy level supported by an NMA capability or policy.";
+  }
+
+  typedef intent-mode {
+    type enumeration {
+      enum natural-language {
+        description "Intent expressed using natural language.";
+      }
+      enum structured {
+        description "Intent expressed using structured data.";
+      }
+    }
+    description
+      "Intent input mode.";
+  }
+
+  typedef intent-type {
+    type enumeration {
+      enum CREATE {
+        description
+          "Create a service, resource, policy, or other managed object.";
+      }
+      enum DELETE {
+        description
+          "Delete a service, resource, policy, or other managed object.";
+      }
+      enum MODIFY {
+        description
+          "Modify an existing service, resource, policy, or other
+           managed object.";
+      }
+      enum QUERY {
+        description
+          "Query status, state, inventory, performance, or other
+           management information.";
+      }
+      enum REPORT {
+        description
+          "Generate a report based on network, service, or operational
+           data.";
+      }
+      enum DIAGNOSE {
+        description
+          "Analyze symptoms, alarms, performance data, or events to
+           identify possible root causes.";
+      }
+      enum REMEDIATE {
+        description
+          "Perform corrective or recovery actions for a detected fault,
+           degradation, or abnormal condition.";
+      }
+      enum OPTIMIZE {
+        description
+          "Optimize service or network behavior according to performance,
+           efficiency, cost, energy, capacity, or policy objectives.";
+      }
+      enum ASSURE {
+        description
+          "Assure a service, slice, resource, or policy objective by
+           monitoring its state and taking or recommending actions when
+           needed.";
+      }
+    }
+    description
+      "High-level structured intent operation category.  Domain-specific
+       subtypes and constraints are carried in the constraints payload.";
+  }
+
+  typedef task-state {
+    type enumeration {
+      enum PENDING {
+        description "Task has been created and is awaiting processing.";
+      }
+      enum ANALYZING {
+        description "The NMA is analyzing the intent.";
+      }
+      enum AWAITING_CLARIFICATION {
+        description "Additional information is required.";
+      }
+      enum PLANNING {
+        description "The NMA is generating an execution plan.";
+      }
+      enum AWAITING_CONFIRMATION {
+        description "The task is suspended until confirmation is resolved.";
+      }
+      enum EXECUTING {
+        description "The NMA is executing the task.";
+      }
+      enum COMPLETED {
+        description "The task has completed successfully.";
+      }
+      enum FAILED {
+        description "The task has failed.";
+      }
+      enum ABORTED {
+        description "The task has been aborted.";
+      }
+    }
+    description
+      "Task lifecycle state.";
+  }
+
+  typedef confirmation-type {
+    type enumeration {
+      enum EXECUTION {
+        description "Confirmation before executing an action.";
+      }
+      enum PARAMETER_CHANGE {
+        description "Confirmation of parameter changes.";
+      }
+      enum DESTRUCTIVE_OPERATION {
+        description
+          "Confirmation of a destructive or service-affecting operation.";
+      }
+      enum POLICY_VIOLATION {
+        description
+          "Confirmation of an action that violates or exceeds a policy.";
+      }
+    }
+    description
+      "Confirmation type.";
+  }
+
+  typedef nma-a2u-event-type {
+    type enumeration {
+      enum intent-received {
+        description "The intent has been received.";
+      }
+      enum intent-parsed {
+        description "The intent has been parsed.";
+      }
+      enum intent-clarification-required {
+        description "Clarification is required for the intent.";
+      }
+      enum intent-rejected {
+        description "The intent has been rejected.";
+      }
+      enum plan-generated {
+        description "An execution plan has been generated.";
+      }
+      enum confirmation-required {
+        description "Confirmation is required.";
+      }
+      enum step-started {
+        description "A plan step has started.";
+      }
+      enum step-completed {
+        description "A plan step has completed.";
+      }
+      enum step-failed {
+        description "A plan step has failed.";
+      }
+      enum task-completed {
+        description "The task has completed.";
+      }
+      enum task-failed {
+        description "The task has failed.";
+      }
+      enum task-suspended {
+        description "The task has been suspended.";
+      }
+    }
+    description
+      "A2U event type.";
+  }
+
+  typedef parser-type {
+    type enumeration {
+      enum llm {
+        description "LLM-based parser.";
+      }
+      enum rule {
+        description "Rule-based parser.";
+      }
+      enum hybrid {
+        description "Hybrid parser.";
+      }
+    }
+    description
+      "Parser type used for natural-language intent interpretation.";
+  }
+
+  typedef step-state {
+    type enumeration {
+      enum pending {
+        description "Step is pending.";
+      }
+      enum running {
+        description "Step is running.";
+      }
+      enum completed {
+        description "Step has completed.";
+      }
+      enum failed {
+        description "Step has failed.";
+      }
+      enum skipped {
+        description "Step has been skipped.";
+      }
+    }
+    description
+      "Plan step state.";
+  }
+
+  typedef confirmation-action {
+    type enumeration {
+      enum approve {
+        description "Approve the proposed action.";
+      }
+      enum reject {
+        description "Reject the proposed action.";
+      }
+      enum modify-and-approve {
+        description "Modify parameters and approve the action.";
+      }
+      enum escalate-to-human {
+        description "Escalate the decision to a human operator.";
+      }
+    }
+    description
+      "Confirmation resolution action.";
+  }
+
+  typedef confirmation-status {
+    type enumeration {
+      enum pending {
+        description "Confirmation is waiting for resolution.";
+      }
+      enum approved {
+        description "Confirmation has been approved.";
+      }
+      enum rejected {
+        description "Confirmation has been rejected.";
+      }
+      enum modified {
+        description "Confirmation has been modified and approved.";
+      }
+      enum expired {
+        description "Confirmation has expired.";
+      }
+      enum escalated {
+        description "Confirmation has been escalated.";
+      }
+    }
+    description
+      "Confirmation status.";
+  }
+
+  typedef error-type {
+    type enumeration {
+      enum invalid-request {
+        description "The request is invalid.";
+      }
+      enum unauthorized {
+        description "Authentication is required or has failed.";
+      }
+      enum forbidden {
+        description "The requester is not authorized.";
+      }
+      enum not-found {
+        description "The requested object was not found.";
+      }
+      enum conflict {
+        description "The request conflicts with the current state.";
+      }
+      enum unprocessable-content {
+        description "The request cannot be processed semantically.";
+      }
+      enum internal-error {
+        description "An internal error occurred.";
+      }
+    }
+    description
+      "A2U error type.";
+  }
+
+  /*
+   * Common groupings
+   */
+
+  grouping submitter-info {
+    description
+      "Information about the user or non-agent upper-layer system that
+       submitted the request.";
+
+    leaf type {
+      type enumeration {
+        enum user {
+          description "Human user.";
+        }
+        enum system {
+          description "Non-agent upper-layer system.";
+        }
+      }
+      description
+        "Submitter type.  The system value represents a non-agent
+         upper-layer system.";
+    }
+
+    leaf id {
+      type string;
+      description
+        "Submitter identifier.";
+    }
+  }
+
+  grouping message-metadata {
+    description
+      "Common metadata used for request correlation, tenancy context,
+       and retry handling.";
+
+    leaf request-id {
+      type string;
+      description
+        "Identifier of the request.";
+    }
+
+    leaf correlation-id {
+      type string;
+      description
+        "Identifier used to correlate related A2U interactions.";
+    }
+
+    leaf tenant-id {
+      type string;
+      description
+        "Identifier of the tenant, customer, organization, project,
+         administrative domain, or other management context associated
+         with the request.";
+    }
+
+    leaf idempotency-key {
+      type string;
+      description
+        "Key used to avoid duplicate processing when a request is retried.";
+    }
+  }
+
+  grouping error-info {
+    description
+      "Common error information returned by the A2U interface.";
+
+    leaf error-type {
+      type error-type;
+      description "Error type.";
+    }
+
+    leaf error-code {
+      type string;
+      description "Machine-readable error code.";
+    }
+
+    leaf error-message {
+      type string;
+      description "Human-readable error message.";
+    }
+
+    leaf retryable {
+      type boolean;
+      default "false";
+      description "Whether retry may succeed.";
+    }
+
+    leaf target {
+      type string;
+      description "Target object or field related to the error.";
+    }
+
+    anydata details {
+      description "Additional error details.";
+    }
+  }
+
+  /*
+   * Core object groupings
+   */
+
+  grouping agent-capabilities-object {
+    description
+      "Capability discovery information exposed by the NMA.";
+
+    leaf agent-id {
+      type string;
+      mandatory true;
+      description "NMA identifier.";
+    }
+
+    leaf version {
+      type string;
+      mandatory true;
+      description "NMA version.";
+    }
+
+    list skills {
+      key "skill-id";
+      description "Skills exposed by the NMA.";
+
+      leaf skill-id {
+        type string;
+        description "Skill identifier.";
+      }
+
+      leaf name {
+        type string;
+        mandatory true;
+        description "Human-readable skill name.";
+      }
+
+      leaf description {
+        type string;
+        description "Skill description.";
+      }
+
+      leaf input-schema {
+        type union {
+          type inet:uri;
+          type string;
+        }
+        description
+          "Input schema URI or inline schema description.";
+      }
+
+      leaf confirmation-required {
+        type boolean;
+        default "false";
+        description
+          "Whether this skill normally requires confirmation before
+           execution.";
+      }
+
+      leaf max-autonomy-level {
+        type autonomy-level;
+        mandatory true;
+        description
+          "Maximum autonomy level supported by this skill.";
+      }
+
+      leaf-list tags {
+        type string;
+        description
+          "Optional tags used to classify or discover this skill.";
+      }
+    }
+
+    list endpoints {
+      key "name";
+      description "A2U endpoints advertised by the NMA.";
+
+      leaf name {
+        type string;
+        description "Endpoint name.";
+      }
+
+      leaf uri {
+        type inet:uri;
+        mandatory true;
+        description "Endpoint URI.";
+      }
+
+      leaf-list methods {
+        type string;
+        description "Supported methods.";
+      }
+    }
+
+    container policies {
+      description "Global policies advertised by the NMA.";
+
+      leaf default-autonomy-level {
+        type autonomy-level;
+        description "Default autonomy level.";
+      }
+
+      leaf human-in-the-loop {
+        type boolean;
+        default "true";
+        description "Whether human-in-the-loop is enabled by default.";
+      }
+
+      leaf max-timeout-seconds {
+        type uint32;
+        units "seconds";
+        description "Maximum timeout in seconds.";
+      }
+    }
+  }
+
+  grouping intent-object {
+    description
+      "Intent submitted to the NMA.";
+
+    leaf intent-id {
+      type string;
+      description "Intent identifier.";
+    }
+
+    leaf mode {
+      type intent-mode;
+      mandatory true;
+      description "Intent input mode.";
+    }
+
+    container submitter {
+      description "Submitter information.";
+      uses submitter-info;
+    }
+
+    leaf timestamp {
+      type yang:date-and-time;
+      description "Submission timestamp.";
+    }
+
+    leaf state {
+      type task-state;
+      description "Current processing state associated with this intent.";
+    }
+
+    leaf task-id {
+      type string;
+      description "Associated task identifier.";
+    }
+
+    choice mode-choice {
+      description "Mode-specific intent content.";
+
+      case natural-language {
+        container natural-language {
+          description "Natural-language input.";
+
+          leaf text {
+            type string;
+            mandatory true;
+            description "Natural-language text submitted by the user or system.";
+          }
+
+          leaf parsed-result-schema {
+            type inet:uri;
+            description "Schema used to interpret parsed-result.";
+          }
+
+          anydata parsed-result {
+            description "Parsed structured representation of the input.";
+          }
+
+          leaf parser {
+            type parser-type;
+            description "Parser used to interpret the natural-language input.";
+          }
+        }
+      }
+
+      case structured {
+        container structured {
+          description "Structured input.";
+
+          leaf type {
+            type intent-type;
+            mandatory true;
+            description "High-level operation category.";
+          }
+
+          leaf target-resource {
+            type string;
+            description "Target service, resource, slice, domain, or object.";
+          }
+
+          leaf constraints-schema {
+            type inet:uri;
+            description "Schema used to interpret constraints.";
+          }
+
+          anydata constraints {
+            mandatory true;
+            description "Domain-specific constraints.";
+          }
+
+          leaf priority {
+            type uint8 {
+              range "1..10";
+            }
+            default "5";
+            description "Intent priority.";
+          }
+        }
+      }
+    }
+
+    leaf estimated-completion {
+      type uint32;
+      units "seconds";
+      description "Estimated completion time.";
+    }
+  }
+
+  grouping plan-step {
+    description
+      "A step in a task execution plan.";
+
+    leaf step-id {
+      type string;
+      description "Step identifier.";
+    }
+
+    leaf action {
+      type string;
+      mandatory true;
+      description "Action to be performed.";
+    }
+
+    leaf target {
+      type string;
+      description "Target of the action.";
+    }
+
+    anydata input-params {
+      description "Step input parameters.";
+    }
+
+    leaf status {
+      type step-state;
+      mandatory true;
+      description "Step status.";
+    }
+
+    leaf observation {
+      type string;
+      description "Observation or result generated by this step.";
+    }
+
+    leaf started-at {
+      type yang:date-and-time;
+      description "Step start time.";
+    }
+
+    leaf completed-at {
+      type yang:date-and-time;
+      description "Step completion time.";
+    }
+  }
+
+  grouping task-object {
+    description
+      "Task lifecycle information.";
+
+    leaf task-id {
+      type string;
+      description "Task identifier.";
+    }
+
+    leaf parent-intent-id {
+      type string;
+      mandatory true;
+      description "Identifier of the parent intent.";
+    }
+
+    leaf state {
+      type task-state;
+      mandatory true;
+      description "Current task state.";
+    }
+
+    leaf created-at {
+      type yang:date-and-time;
+      mandatory true;
+      description "Task creation time.";
+    }
+
+    leaf updated-at {
+      type yang:date-and-time;
+      mandatory true;
+      description "Last task update time.";
+    }
+
+    list plan {
+      key "step-id";
+      description "Execution plan.";
+      uses plan-step;
+    }
+
+    container result {
+      description "Task result.";
+
+      leaf success {
+        type boolean;
+        description "Whether the task succeeded.";
+      }
+
+      leaf summary {
+        type string;
+        description "Result summary.";
+      }
+
+      leaf-list affected-resources {
+        type string;
+        description "Resources affected by the task.";
+      }
+
+      anydata output-data {
+        description "Structured output data.";
+      }
+    }
+
+    list audit-log {
+      key "log-id";
+      description "Task audit log.";
+
+      leaf log-id {
+        type string;
+        description "Log entry identifier.";
+      }
+
+      leaf timestamp {
+        type yang:date-and-time;
+        mandatory true;
+        description "Log timestamp.";
+      }
+
+      leaf actor {
+        type string;
+        mandatory true;
+        description "Actor that performed the action.";
+      }
+
+      leaf action {
+        type string;
+        mandatory true;
+        description "Audited action.";
+      }
+
+      leaf details {
+        type string;
+        description "Additional log details.";
+      }
+    }
+  }
+
+  grouping confirmation-object {
+    description
+      "Confirmation information used for human-in-the-loop or
+       system-in-the-loop decision making.";
+
+    leaf confirmation-id {
+      type string;
+      description "Confirmation identifier.";
+    }
+
+    leaf task-id {
+      type string;
+      mandatory true;
+      description "Associated task identifier.";
+    }
+
+    leaf type {
+      type confirmation-type;
+      mandatory true;
+      description "Confirmation type.";
+    }
+
+    leaf priority {
+      type uint8 {
+        range "1..10";
+      }
+      default "5";
+      description "Confirmation priority.";
+    }
+
+    leaf timeout-seconds {
+      type uint32;
+      default "300";
+      units "seconds";
+      description "Timeout for resolving the confirmation.";
+    }
+
+    leaf context-schema {
+      type inet:uri;
+      description "Schema used to interpret context.";
+    }
+
+    anydata context {
+      mandatory true;
+      description "Context needed to resolve the confirmation.";
+    }
+
+    leaf-list allowed-actions {
+      type confirmation-action;
+      min-elements 1;
+      description "Actions allowed for this confirmation.";
+    }
+
+    leaf status {
+      type confirmation-status;
+      default "pending";
+      description "Confirmation status.";
+    }
+
+    container resolution {
+      description "Final resolution of the confirmation.";
+
+      leaf action {
+        type confirmation-action;
+        description "Selected resolution action.";
+      }
+
+      leaf modified-params-schema {
+        type inet:uri;
+        description "Schema used to interpret modified-params.";
+      }
+
+      anydata modified-params {
+        description "Modified parameters.";
+      }
+
+      leaf resolved-by {
+        type string;
+        description "Resolver identifier.";
+      }
+
+      leaf resolved-at {
+        type yang:date-and-time;
+        description "Resolution time.";
+      }
+    }
+  }
+
+  grouping event-object {
+    description
+      "A2U event information.";
+
+    leaf event-id {
+      type string;
+      description "Event identifier.";
+    }
+
+    leaf event-type {
+      type nma-a2u-event-type;
+      mandatory true;
+      description "Event type.";
+    }
+
+    leaf task-id {
+      type string;
+      mandatory true;
+      description "Associated task identifier.";
+    }
+
+    leaf timestamp {
+      type yang:date-and-time;
+      mandatory true;
+      description "Event timestamp.";
+    }
+
+    leaf recipient {
+      type string;
+      description "Intended event recipient.";
+    }
+
+    container payload {
+      description "Event-specific payload.";
+
+      choice event-payload {
+        description "Payload selected according to event type.";
+
+        case intent-receipt {
+          container intent-receipt {
+            leaf accepted {
+              type boolean;
+              mandatory true;
+              description "Whether the intent was accepted.";
+            }
+
+            leaf estimated-processing-time {
+              type uint32;
+              units "seconds";
+              description "Estimated processing time.";
+            }
+          }
+        }
+
+        case clarification-request {
+          container clarification-request {
+            leaf-list missing-fields {
+              type string;
+              description "Missing fields.";
+            }
+
+            leaf-list ambiguous-fields {
+              type string;
+              description "Ambiguous fields.";
+            }
+
+            leaf-list questions {
+              type string;
+              description "Clarification questions.";
+            }
+          }
+        }
+
+        case rejection {
+          container rejection {
+            leaf reason-code {
+              type string;
+              mandatory true;
+              description "Rejection reason code.";
+            }
+
+            leaf explanation {
+              type string;
+              mandatory true;
+              description "Rejection explanation.";
+            }
+          }
+        }
+
+        case plan-generated {
+          container plan-generated {
+            leaf step-count {
+              type uint32;
+              mandatory true;
+              description "Number of generated plan steps.";
+            }
+
+            leaf estimated-duration {
+              type uint32;
+              units "seconds";
+              description "Estimated execution duration.";
+            }
+          }
+        }
+
+        case confirmation-required {
+          container confirmation-required {
+            leaf confirmation-id {
+              type string;
+              mandatory true;
+              description "Required confirmation identifier.";
+            }
+          }
+        }
+
+        case step-completed {
+          container step-completed {
+            leaf step-id {
+              type string;
+              mandatory true;
+              description "Completed step identifier.";
+            }
+
+            leaf observation {
+              type string;
+              description "Step observation.";
+            }
+          }
+        }
+
+        case step-failed {
+          container step-failed {
+            leaf step-id {
+              type string;
+              mandatory true;
+              description "Failed step identifier.";
+            }
+
+            leaf exception-type {
+              type string;
+              mandatory true;
+              description "Exception type.";
+            }
+
+            leaf affected-scope {
+              type string;
+              description "Affected scope.";
+            }
+
+            leaf-list remedial-suggestions {
+              type string;
+              description "Suggested remedial actions.";
+            }
+          }
+        }
+
+        case task-completed {
+          container task-completed {
+            leaf summary {
+              type string;
+              mandatory true;
+              description "Task completion summary.";
+            }
+
+            leaf-list affected-resources {
+              type string;
+              description "Affected resources.";
+            }
+          }
+        }
+
+        case task-failed {
+          container task-failed {
+            leaf reason {
+              type string;
+              mandatory true;
+              description "Task failure reason.";
+            }
+
+            leaf failed-step-id {
+              type string;
+              description "Failed step identifier.";
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /*
+   * Abstract structures.
+   * Only the top-level structures use the nma-a2u- prefix.
+   */
+
+  sx:structure nma-a2u-agent-capabilities {
+    description "A2U agent capabilities structure.";
+    uses agent-capabilities-object;
+  }
+
+  sx:structure nma-a2u-intent {
+    description "A2U intent structure.";
+    uses intent-object;
+  }
+
+  sx:structure nma-a2u-task {
+    description "A2U task structure.";
+    uses task-object;
+  }
+
+  sx:structure nma-a2u-confirmation {
+    description "A2U confirmation structure.";
+    uses confirmation-object;
+  }
+
+  sx:structure nma-a2u-event {
+    description "A2U event structure.";
+    uses event-object;
+  }
+
+  sx:structure nma-a2u-submit-intent-request {
+    description "Request body for intent submission.";
+    uses message-metadata;
+
+    container intent {
+      description "Submitted intent.";
+      uses intent-object;
+    }
+  }
+
+  sx:structure nma-a2u-submit-intent-response {
+    description "Response body for intent submission.";
+    uses message-metadata;
+
+    leaf accepted {
+      type boolean;
+      mandatory true;
+      description "Whether the intent was accepted.";
+    }
+
+    leaf intent-id {
+      type string;
+      description "Accepted intent identifier.";
+    }
+
+    leaf task-id {
+      type string;
+      description "Created or associated task identifier.";
+    }
+
+    leaf state {
+      type task-state;
+      description "Current task state.";
+    }
+
+    container task {
+      description "Task information.";
+      uses task-object;
+    }
+
+    container error {
+      description "Error information.";
+      uses error-info;
+    }
+  }
+
+  sx:structure nma-a2u-task-list-response {
+    description "Response body for task listing.";
+
+    list task {
+      key "task-id";
+      description "Task entry.";
+      uses task-object;
+    }
+
+    leaf limit {
+      type uint32;
+      description "Returned result limit.";
+    }
+
+    leaf offset {
+      type uint32;
+      description "Returned result offset.";
+    }
+
+    leaf total-count {
+      type uint32;
+      description "Total number of matching tasks.";
+    }
+  }
+
+  sx:structure nma-a2u-confirmation-resolution-request {
+    description "Request body for confirmation resolution.";
+    uses message-metadata;
+
+    leaf confirmation-id {
+      type string;
+      mandatory true;
+      description "Confirmation identifier.";
+    }
+
+    leaf action {
+      type confirmation-action;
+      mandatory true;
+      description "Selected resolution action.";
+    }
+
+    leaf modified-params-schema {
+      type inet:uri;
+      description "Schema used to interpret modified-params.";
+    }
+
+    anydata modified-params {
+      description "Modified parameters.";
+    }
+
+    leaf resolved-by {
+      type string;
+      description "Resolver identifier.";
+    }
+  }
+
+  sx:structure nma-a2u-confirmation-resolution-response {
+    description "Response body for confirmation resolution.";
+
+    leaf confirmation-id {
+      type string;
+      description "Confirmation identifier.";
+    }
+
+    leaf task-id {
+      type string;
+      description "Associated task identifier.";
+    }
+
+    leaf status {
+      type confirmation-status;
+      description "Updated confirmation status.";
+    }
+
+    leaf task-state {
+      type task-state;
+      description "Updated task state.";
+    }
+
+    container error {
+      description "Error information.";
+      uses error-info;
+    }
+  }
+
+  sx:structure nma-a2u-abort-task-request {
+    description "Request body for task abort.";
+    uses message-metadata;
+
+    leaf reason {
+      type string;
+      description "Reason for aborting the task.";
+    }
+  }
+
+  sx:structure nma-a2u-abort-task-response {
+    description "Response body for task abort.";
+
+    leaf task-id {
+      type string;
+      description "Task identifier.";
+    }
+
+    leaf state {
+      type task-state;
+      description "Updated task state.";
+    }
+
+    container error {
+      description "Error information.";
+      uses error-info;
+    }
+  }
+
+  sx:structure nma-a2u-error {
+    description "A2U error structure.";
+    uses error-info;
+  }
+
+  notification a2u-event-notification {
+    description "Optional YANG notification form of an A2U event.";
+    uses event-object;
+  }
+}
