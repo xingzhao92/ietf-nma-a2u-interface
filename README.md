@@ -61,7 +61,7 @@ self-contained implementation of the A2U workflow.
 
 ### OSS/BSS A2U Client
 
-![OSS/BSS A2U Client](docs/images/oss-a2u-client.png)
+![OSS/BSS A2U Client](docs/images/oss-a2u-client.png?v=20260718-2)
 
 ### Domain Controller and embedded NMA
 
@@ -69,7 +69,7 @@ self-contained implementation of the A2U workflow.
 
 ### A2C function-call record
 
-![A2C Interface Calls](docs/images/a2c-interface-calls.png)
+![A2C Interface Calls](docs/images/a2c-interface-calls.png?v=20260718-2)
 
 ## Primary incident workflow
 
