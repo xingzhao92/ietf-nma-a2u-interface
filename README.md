@@ -8,7 +8,9 @@ A2U is a user-facing interface through which a **non-agent upper-layer system or
 user**—such as an OSS/BSS, orchestrator, management portal, automation system,
 or human-facing application—discovers and invokes NMA capabilities. Interaction
 between two agents or NMAs is outside the scope of A2U and is expected to use
-A2A or another Agent-to-Agent interface.
+A2A or another Agent-to-Agent interface. While A2A interactions may reuse or map
+the same semantics defined by A2U.
+
 
 ## Internet-Drafts
 
