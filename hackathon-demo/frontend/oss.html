@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OSS/BSS Simulator · NMA A2U Client</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    html { min-height: 100%; }
+    body {
+      min-height: 100%;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+    .oss-layout {
+      --column-1-width: minmax(500px, 1.28fr);
+      --column-2-width: minmax(410px, .98fr);
+      min-height: calc(100vh - 64px);
+      height: auto;
+      min-width: 1360px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: var(--column-1-width) 10px var(--column-2-width) 10px minmax(430px, 1fr);
+      gap: 0;
+      align-items: start;
+    }
+    .column {
+      min-height: 0;
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .column > .panel {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 180px;
+      overflow: hidden;
+    }
+    .column > .panel > .panel-header { flex: 0 0 auto; }
+    .column > .panel > .panel-body {
+      min-height: 0;
+      flex: 1 1 auto;
+    }
+    .grow { min-height: 0; flex: 0 0 auto; }
+    .scroll { height: 100%; overflow: auto; }
+
+    .column-resizer {
+      position: relative;
+      width: 10px;
+      align-self: stretch;
+      min-height: calc(100vh - 88px);
+      cursor: col-resize;
+      touch-action: none;
+      user-select: none;
+    }
+    .column-resizer::before {
+      content: '';
+      position: sticky;
+      top: 84px;
+      display: block;
+      width: 4px;
+      height: 84px;
+      margin: 180px auto 0;
+      border-radius: 999px;
+      background: #c8d3e3;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.75);
+      transition: .15s ease;
+    }
+    .column-resizer:hover::before,
+    .column-resizer.dragging::before {
+      width: 6px;
+      background: #4f82df;
+      box-shadow: 0 0 0 4px rgba(20,85,217,.10);
+    }
+
+    .module-resizer {
+      position: relative;
+      height: 12px;
+      flex: 0 0 12px;
+      cursor: row-resize;
+      touch-action: none;
+      user-select: none;
+    }
+    .module-resizer::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 4px;
+      width: 78px;
+      height: 4px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: #c8d3e3;
+      transition: .15s ease;
+    }
+    .module-resizer::after {
+      content: 'drag to resize';
+      position: absolute;
+      left: 50%;
+      top: -13px;
+      padding: 2px 6px;
+      transform: translateX(-50%);
+      border-radius: 5px;
+      color: #64748b;
+      background: rgba(255,255,255,.96);
+      border: 1px solid #dbe3ef;
+      font-size: 9px;
+      line-height: 1.2;
+      opacity: 0;
+      pointer-events: none;
+      white-space: nowrap;
+      transition: .15s ease;
+    }
+    .module-resizer:hover::before,
+    .module-resizer.dragging::before {
+      height: 6px;
+      top: 3px;
+      background: #4f82df;
+      box-shadow: 0 0 0 4px rgba(20,85,217,.10);
+    }
+    .module-resizer:hover::after { opacity: 1; }
+    body.layout-dragging { cursor: row-resize; user-select: none; }
+    body.column-dragging { cursor: col-resize; user-select: none; }
+
+    .layout-help {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border: 1px solid rgba(255,255,255,.38);
+      border-radius: 999px;
+      color: rgba(255,255,255,.90);
+      font-size: 10px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .scenario-panel { height: 180px; }
+    .scenario-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+    .scenario { cursor: pointer; transition: .15s ease; padding: 9px; min-height: 96px; }
+    .scenario .card-title { font-size: 12px; line-height: 1.25; }
+    .scenario .card-desc { font-size: 10.5px; line-height: 1.35; }
+    .submit-panel {
+      height: 870px;
+      border: 2px solid #b8cdf7;
+      box-shadow: 0 12px 34px rgba(20, 85, 217, .14);
+    }
+    .submit-panel .panel-header { background: linear-gradient(90deg, #f7faff, #eef4ff); }
+    .submit-endpoint {
+      margin: -2px 0 12px;
+      padding: 8px 10px;
+      border: 1px solid #d6e3fb;
+      border-radius: 8px;
+      background: #f5f8ff;
+      color: #214b8f;
+      font: 11px/1.4 Consolas, monospace;
+      word-break: break-all;
+    }
+    .metadata-card {
+      margin-bottom: 12px;
+      border: 1px solid #d9e2ef;
+      border-radius: 9px;
+      background: #fbfcfe;
+      overflow: hidden;
+    }
+    .metadata-card summary {
+      padding: 9px 11px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+      color: #334155;
+      background: #f7f9fc;
+    }
+    .metadata-fields { padding: 10px 11px 1px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+    .intent-type-help { margin: -1px 0 10px; padding: 8px 10px; min-height: 48px; }
+    #nlText { min-height: 180px; font-size: 14px; line-height: 1.45; }
+    #constraints { min-height: 360px !important; }
+    .object-actions {
+      margin-top: 11px;
+      padding-top: 10px;
+      border-top: 1px dashed #ccd7e6;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+    .submit-status { display:none; margin-top:9px; }
+    .submit-status.show { display:block; }
+
+    .flow-panel { height: 470px; }
+    .flow-panel .panel-body {
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+    }
+    .task-panel { height: 720px; min-height: 360px !important; }
+    .notification-panel { height: 470px; }
+    .notification-panel .panel-body { overflow: auto; }
+    .interaction-panel { height: 540px; }
+    .inspector-panel { height: 680px; }
+
+    .notification-overview {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:7px;
+    }
+    .notification-summary { display:flex; gap:5px; flex-wrap:wrap; min-width:0; }
+    .notification-chip {
+      border: 1px solid #d8c7fa;
+      border-radius: 999px;
+      padding: 3px 7px;
+      color: #6d28d9;
+      background: #faf7ff;
+      font-size: 10px;
+      font-weight: 750;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .notification-chip.active { color:#fff; background:#7c3aed; border-color:#7c3aed; }
+    .notification-selector {
+      width: 100%;
+      margin-bottom: 8px;
+      border: 1px solid #d8c7fa;
+      border-radius: 7px;
+      padding: 5px 8px;
+      color: #5b21b6;
+      background: #faf7ff;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .task-refresh-note { font-size:10px; color:#64748b; margin-top:2px; }
+    .modify-box { margin-top:12px; padding:10px; border:1px solid #d9e2ef; border-radius:9px; background:#fbfcfe; }
+    .modify-box textarea { min-height:100px; }
+    .scenario:hover { border-color: #8bb0f5; transform: translateY(-1px); }
+    .scenario.selected { border-color: #1455d9; box-shadow: 0 0 0 3px #eaf1ff; }
+    .status-line { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .plan-step {
+      display: grid;
+      grid-template-columns: 54px 1fr 105px;
+      gap: 8px;
+      align-items: start;
+      padding: 8px 0;
+      border-bottom: 1px solid #edf1f6;
+      font-size: 12px;
+    }
+    .plan-step:last-child { border-bottom: 0; }
+    .step-id { font-family: Consolas, monospace; color: #64748b; font-size: 11px; }
+    .step-observation { color:#64748b; margin-top:3px; line-height:1.4; }
+    .log-row { padding: 9px 0; border-bottom: 1px solid #edf1f6; }
+    .log-head { display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+    .log-path { font-size:11px; color:#334155; font-family:Consolas,monospace; word-break:break-all; }
+    .log-note { color:#64748b; font-size:11px; margin-top:4px; }
+    .json-tabs { display:flex; gap:5px; margin-bottom:8px; }
+    .json-tabs button.active { background:#1455d9; color:white; }
+
+    @media (max-width: 1280px) {
+      body { overflow-x: hidden; }
+      .oss-layout {
+        min-width: 0;
+        grid-template-columns: minmax(480px, 1.08fr) 12px minmax(410px, 1fr);
+      }
+      .oss-layout > .column:nth-of-type(3) { grid-column: 1 / -1; margin-top: 12px; }
+      .oss-layout > .column-resizer:nth-of-type(2) { display: none; }
+      .column-resizer::before { margin-top: 120px; }
+    }
+    @media (max-width: 920px) {
+      .oss-layout { display: block; padding: 10px; }
+      .column-resizer { display: none !important; }
+      .column { width: 100%; }
+      .column + .column { margin-top: 12px; }
+      .scenario-grid { grid-template-columns: 1fr; }
+      .scenario-panel { height: 390px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>OSS/BSS Simulator <span class="badge green">A2U Client</span></h1>
+      <div class="subtitle">Non-agent upper-layer system invoking an embedded transport NMA</div>
+    </div>
+    <div class="top-actions">
+      <span class="layout-help">↔ columns · ↕ modules</span>
+      <span id="health" class="badge green">● NMA online</span>
+      <button class="btn light" onclick="location.href='/'">Controller View</button>
+      <button class="btn light" onclick="resetLayout()">Reset Layout</button>
+      <button class="btn light" onclick="resetDemo()">Reset Demo</button>
+    </div>
+  </header>
+
+  <main class="oss-layout">
+    <section id="ossColumn1" class="column primary-column">
+      <div id="scenarioPanel" class="panel scenario-panel" data-default-height="180">
+        <div class="panel-header">
+          <h2>1. Demo Scenario</h2>
+          <span class="badge blue">IETF 126</span>
+        </div>
+        <div class="panel-body">
+          <div class="scenario-grid">
+            <div id="scIncidentNL" class="card scenario selected" onclick="selectScenario('incident-nl')">
+              <div class="card-title">Incident diagnosis · Natural language</div>
+              <div class="card-desc">Shows one intent entry and the complete task/plan/confirmation lifecycle.</div>
+            </div>
+            <div id="scIncidentStructured" class="card scenario" onclick="selectScenario('incident-structured')">
+              <div class="card-title">Incident diagnosis · Structured</div>
+              <div class="card-desc">Carries ietf-incident-aligned fields in constraints anydata.</div>
+            </div>
+            <div id="scService" class="card scenario" onclick="selectScenario('service-create')">
+              <div class="card-title">Service creation · Structured</div>
+              <div class="card-desc">Retains the original service-creation-agent demonstration.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="module-resizer" data-target="scenarioPanel" aria-label="Resize Demo Scenario panel" title="Drag to resize Demo Scenario"></div>
+
+      <div id="submitPanel" class="panel submit-panel" data-default-height="870">
+        <div class="panel-header">
+          <div><h2>2. submit-intent RPC</h2><div class="muted" style="font-size:10px;margin-top:2px">Unified entry for natural-language and structured intent</div></div>
+          <span class="method POST">POST</span>
+        </div>
+        <div class="panel-body scroll">
+          <div class="submit-endpoint">POST /restconf/operations/ietf-nma-a2u:submit-intent</div>
+          <details class="metadata-card">
+            <summary>Message metadata and submitter fields</summary>
+            <div class="metadata-fields">
+              <div class="field">
+                <label>request-id</label>
+                <input id="requestId">
+              </div>
+              <div class="field">
+                <label>correlation-id</label>
+                <input id="correlationId">
+              </div>
+              <div class="field">
+                <label>tenant-id</label>
+                <input id="tenantId" value="tenant-1">
+              </div>
+              <div class="field">
+                <label>intent-id</label>
+                <input id="intentIdInput">
+              </div>
+              <div class="field">
+                <label>submitter.type</label>
+                <select id="submitterType"><option value="system">system</option><option value="user">user</option></select>
+              </div>
+              <div class="field">
+                <label>submitter.id</label>
+                <input id="submitterId" value="oss-a">
+              </div>
+            </div>
+          </details>
+          <div class="field">
+            <label>Intent mode</label>
+            <select id="mode" onchange="modeChanged()">
+              <option value="natural-language">natural-language</option>
+              <option value="structured">structured</option>
+            </select>
+          </div>
+          <div id="nlFields">
+            <div class="field">
+              <label>Natural-language text</label>
+              <textarea id="nlText">Analyze the service degradation of OTN service svc-1001, identify the root cause, assess affected resources, and recommend recovery actions.</textarea>
+            </div>
+          </div>
+          <div id="structuredFields" style="display:none">
+            <div class="split">
+              <div class="field">
+                <label>Type</label>
+                <select id="structuredType" onchange="intentTypeChanged()">
+                  <option>CREATE</option>
+                  <option>DELETE</option>
+                  <option>MODIFY</option>
+                  <option>QUERY</option>
+                  <option>REPORT</option>
+                  <option selected>DIAGNOSE</option>
+                  <option>REMEDIATE</option>
+                  <option>OPTIMIZE</option>
+                  <option>ASSURE</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Priority (1–10)</label>
+                <input id="priority" type="number" min="1" max="10" value="9">
+              </div>
+            </div>
+            <div id="intentTypeHelp" class="notice intent-type-help"></div>
+            <div class="field">
+              <label>Target resource</label>
+              <input id="targetResource" value="incident-56433218">
+            </div>
+            <div class="field">
+              <label>constraints-schema</label>
+              <input id="constraintsSchema" value="urn:ietf:params:xml:ns:yang:ietf-incident">
+            </div>
+            <div class="field">
+              <label>constraints (anydata)</label>
+              <textarea id="constraints" class="mono" style="min-height:220px"></textarea>
+            </div>
+          </div>
+          <button id="submitBtn" class="btn" style="width:100%;padding:11px 12px" onclick="submitIntent()">Submit Intent</button>
+          <div style="height:8px"></div>
+          <button id="abortBtn" class="btn secondary" style="width:100%" onclick="abortTask()" disabled>Abort Current Task</button>
+          <div id="submitStatus" class="notice submit-status"></div>
+          <div class="object-actions">
+            <button id="getIntentBtn" class="btn small secondary" onclick="viewOperationalObject('intent')" disabled>GET intent</button>
+            <button id="getTaskBtn" class="btn small secondary" onclick="viewOperationalObject('task')" disabled>GET task</button>
+            <button id="getConfirmationBtn" class="btn small secondary" onclick="viewOperationalObject('confirmation')" disabled>GET confirmation</button>
+          </div>
+        </div>
+      </div>
+      <div class="module-resizer" data-target="submitPanel" aria-label="Resize submit-intent panel" title="Drag to resize submit-intent"></div>
+    </section>
+
+    <div class="column-resizer" data-divider="1" aria-label="Resize first and second columns" title="Drag to resize columns"></div>
+
+    <section id="ossColumn2" class="column">
+      <div id="flowPanel" class="panel flow-panel" data-default-height="470">
+        <div class="panel-header">
+          <h2>A2U Interaction Flow</h2>
+          <span id="taskState" class="badge gray">NO TASK</span>
+        </div>
+        <div class="panel-body">
+          <div id="timeline" class="timeline"></div>
+        </div>
+      </div>
+      <div class="module-resizer" data-target="flowPanel" aria-label="Resize A2U Interaction Flow panel" title="Drag to resize A2U Interaction Flow"></div>
+
+      <div id="taskPanel" class="panel task-panel" data-default-height="720">
+        <div class="panel-header">
+          <div><h2>Task / Plan / Result</h2><div class="task-refresh-note">Refreshed on notification; no periodic task polling</div></div>
+          <button class="btn small secondary" onclick="refreshTask()">GET task (manual)</button>
+        </div>
+        <div class="panel-body scroll">
+          <div id="taskSummary" class="empty">Submit an intent to start the demonstration.</div>
+          <div id="plan"></div>
+          <div id="result"></div>
+        </div>
+      </div>
+      <div class="module-resizer" data-target="taskPanel" aria-label="Resize Task Plan Result panel" title="Drag to resize Task / Plan / Result"></div>
+
+      <div id="notificationPanel" class="panel notification-panel" data-default-height="470">
+        <div class="panel-header">
+          <h2>YANG Notification Stream</h2>
+          <span class="badge purple">publisher push</span>
+        </div>
+        <div class="panel-body">
+          <div class="notification-overview">
+            <div id="notificationSummary" class="notification-summary"><span class="muted" style="font-size:11px">No notification received.</span></div>
+            <span id="notificationCount" class="badge gray">0 events</span>
+          </div>
+          <select id="notificationSelect" class="notification-selector" onchange="selectNotification(Number(this.value))" disabled>
+            <option value="-1">No notification received</option>
+          </select>
+          <pre id="notificationJson" class="json">No notification received.</pre>
+        </div>
+      </div>
+      <div class="module-resizer" data-target="notificationPanel" aria-label="Resize Notification panel" title="Drag to resize YANG Notification Stream"></div>
+    </section>
+
+    <div class="column-resizer" data-divider="2" aria-label="Resize second and third columns" title="Drag to resize columns"></div>
+
+    <section id="ossColumn3" class="column">
+      <div id="interactionPanel" class="panel interaction-panel" data-default-height="540">
+        <div class="panel-header">
+          <h2>A2U / RESTCONF Interaction Log</h2>
+          <button class="btn small secondary" onclick="loadInteractions()">Refresh</button>
+        </div>
+        <div class="panel-body scroll" id="interactionLog">
+          <div class="empty">No interaction yet.</div>
+        </div>
+      </div>
+      <div class="module-resizer" data-target="interactionPanel" aria-label="Resize interaction log panel" title="Drag to resize A2U / RESTCONF Interaction Log"></div>
+
+      <div id="inspectorPanel" class="panel grow inspector-panel" data-default-height="680">
+        <div class="panel-header">
+          <h2>Request / Response Inspector</h2>
+          <span class="badge blue">JSON</span>
+        </div>
+        <div class="panel-body scroll">
+          <div class="json-tabs">
+            <button id="tabReq" class="btn small secondary active" onclick="showJson('request')">Request</button>
+            <button id="tabResp" class="btn small secondary" onclick="showJson('response')">Response</button>
+            <button id="tabObject" class="btn small secondary" onclick="showJson('object')">A2U Object</button>
+            <button id="tabCap" class="btn small secondary" onclick="showJson('capability')">Capabilities</button>
+          </div>
+          <pre id="jsonInspector" class="json"></pre>
+        </div>
+      </div>
+      <div class="module-resizer" data-target="inspectorPanel" aria-label="Resize inspector panel" title="Drag to resize Request / Response Inspector"></div>
+    </section>
+  </main>
+
+  <div id="confirmationModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <b>Human-in-the-Loop Confirmation</b>
+          <div class="muted" style="font-size:11px;margin-top:3px">Notification carries a compact summary; GET retrieves the full object.</div>
+        </div>
+        <span class="badge purple">AWAITING_CONFIRMATION</span>
+      </div>
+      <div class="modal-body">
+        <div id="confirmationSummary" class="notice"></div>
+        <div style="height:12px"></div>
+        <div id="confirmationKv" class="kv"></div>
+        <div id="modifyBox" class="modify-box" style="display:none">
+          <div class="card-title">Modified parameters for modify-and-approve</div>
+          <div class="field">
+            <label>modified-params-schema</label>
+            <input id="modifiedParamsSchema" value="urn:demo:otn-service-intent">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>modified-params (anydata)</label>
+            <textarea id="modifiedParams" class="mono">{
+  "bandwidth": {
+    "value": 200,
+    "unit": "Mbps"
+  }
+}</textarea>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+        <pre id="confirmationJson" class="json"></pre>
+      </div>
+      <div class="modal-actions">
+        <button id="escalateBtn" class="btn secondary" onclick="resolveConfirmation('escalate-to-human')">Escalate</button>
+        <button id="rejectBtn" class="btn danger" onclick="resolveConfirmation('reject')">Reject</button>
+        <button id="modifyApproveBtn" class="btn warning" onclick="resolveConfirmation('modify-and-approve')">Modify & Approve</button>
+        <button id="approveBtn" class="btn success" onclick="resolveConfirmation('approve')">Approve & Execute</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const INCIDENT_SCHEMA = 'urn:ietf:params:xml:ns:yang:ietf-incident';
+let currentTaskId = null;
+let currentIntentId = null;
+let currentConfirmationId = null;
+let currentCorrelationId = null;
+let currentTenantId = 'tenant-1';
+let eventSource = null;
+let lastRequest = {};
+let lastResponse = {};
+let lastObject = {};
+let capabilities = {};
+let selectedScenario = 'incident-nl';
+let notificationEvents = [];
+let activeNotificationIndex = -1;
+
+const LAYOUT_STORAGE_KEY = 'nma-a2u-oss-layout-v3.2';
+const PANEL_MIN_HEIGHTS = {
+  scenarioPanel: 150,
+  submitPanel: 430,
+  flowPanel: 280,
+  taskPanel: 420,
+  notificationPanel: 300,
+  interactionPanel: 300,
+  inspectorPanel: 360
+};
+const PANEL_MAX_HEIGHT = 1400;
+
+function loadLayoutState() {
+  try {
+    return JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) || '{}');
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveLayoutState() {
+  const layout = document.querySelector('.oss-layout');
+  const state = {
+    column1: layout.style.getPropertyValue('--column-1-width') || '',
+    column2: layout.style.getPropertyValue('--column-2-width') || '',
+    panels: {}
+  };
+  document.querySelectorAll('[data-default-height]').forEach(panel => {
+    state.panels[panel.id] = Math.round(panel.getBoundingClientRect().height);
+  });
+  localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(state));
+}
+
+function applySavedLayout() {
+  const state = loadLayoutState();
+  const layout = document.querySelector('.oss-layout');
+  if (state.column1) layout.style.setProperty('--column-1-width', state.column1);
+  if (state.column2) layout.style.setProperty('--column-2-width', state.column2);
+  Object.entries(state.panels || {}).forEach(([id, height]) => {
+    const panel = document.getElementById(id);
+    if (panel && Number.isFinite(Number(height))) {
+      panel.style.height = Math.max(PANEL_MIN_HEIGHTS[id] || 180, Math.min(PANEL_MAX_HEIGHT, Number(height))) + 'px';
+    }
+  });
+}
+
+function resetLayout() {
+  localStorage.removeItem(LAYOUT_STORAGE_KEY);
+  const layout = document.querySelector('.oss-layout');
+  layout.style.removeProperty('--column-1-width');
+  layout.style.removeProperty('--column-2-width');
+  document.querySelectorAll('[data-default-height]').forEach(panel => {
+    panel.style.height = panel.dataset.defaultHeight + 'px';
+  });
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function initializeModuleResizers() {
+  document.querySelectorAll('.module-resizer').forEach(handle => {
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      const panel = document.getElementById(handle.dataset.target);
+      if (!panel) return;
+      event.preventDefault();
+      handle.setPointerCapture(event.pointerId);
+      const startY = event.clientY;
+      const startHeight = panel.getBoundingClientRect().height;
+      const minHeight = PANEL_MIN_HEIGHTS[panel.id] || 180;
+      handle.classList.add('dragging');
+      document.body.classList.add('layout-dragging');
+
+      const onMove = moveEvent => {
+        const height = Math.max(minHeight, Math.min(PANEL_MAX_HEIGHT, startHeight + moveEvent.clientY - startY));
+        panel.style.height = Math.round(height) + 'px';
+      };
+      const onEnd = () => {
+        handle.classList.remove('dragging');
+        document.body.classList.remove('layout-dragging');
+        handle.removeEventListener('pointermove', onMove);
+        handle.removeEventListener('pointerup', onEnd);
+        handle.removeEventListener('pointercancel', onEnd);
+        saveLayoutState();
+      };
+      handle.addEventListener('pointermove', onMove);
+      handle.addEventListener('pointerup', onEnd);
+      handle.addEventListener('pointercancel', onEnd);
+    });
+  });
+}
+
+function initializeColumnResizers() {
+  document.querySelectorAll('.column-resizer').forEach(handle => {
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || window.innerWidth <= 920) return;
+      event.preventDefault();
+      handle.setPointerCapture(event.pointerId);
+      const divider = Number(handle.dataset.divider);
+      const layout = document.querySelector('.oss-layout');
+      const col1 = document.getElementById('ossColumn1');
+      const col2 = document.getElementById('ossColumn2');
+      const col3 = document.getElementById('ossColumn3');
+      const startX = event.clientX;
+      const start1 = col1.getBoundingClientRect().width;
+      const start2 = col2.getBoundingClientRect().width;
+      const start3 = col3.getBoundingClientRect().width;
+      handle.classList.add('dragging');
+      document.body.classList.add('column-dragging');
+
+      const onMove = moveEvent => {
+        const delta = moveEvent.clientX - startX;
+        if (divider === 1) {
+          const next1 = Math.max(430, start1 + delta);
+          const next2 = Math.max(380, start2 - delta);
+          if (next1 >= 430 && next2 >= 380) {
+            layout.style.setProperty('--column-1-width', Math.round(next1) + 'px');
+            layout.style.setProperty('--column-2-width', Math.round(next2) + 'px');
+          }
+        } else {
+          const next2 = Math.max(380, start2 + delta);
+          const next3 = Math.max(410, start3 - delta);
+          if (next2 >= 380 && next3 >= 410) {
+            layout.style.setProperty('--column-2-width', Math.round(next2) + 'px');
+          }
+        }
+      };
+      const onEnd = () => {
+        handle.classList.remove('dragging');
+        document.body.classList.remove('column-dragging');
+        handle.removeEventListener('pointermove', onMove);
+        handle.removeEventListener('pointerup', onEnd);
+        handle.removeEventListener('pointercancel', onEnd);
+        saveLayoutState();
+      };
+      handle.addEventListener('pointermove', onMove);
+      handle.addEventListener('pointerup', onEnd);
+      handle.addEventListener('pointercancel', onEnd);
+    });
+  });
+}
+
+function initializeResizableLayout() {
+  applySavedLayout();
+  initializeModuleResizers();
+  initializeColumnResizers();
+}
+
+const incidentConstraints = {
+  "incident-no": 56433218,
+  "name": "otn-service-degradation",
+  "type": "problem",
+  "incident-id": "line-fault-svc-1001",
+  "service-instance": ["svc-1001"],
+  "domain": "otn",
+  "priority": "critical",
+  "status": "raised",
+  "ack-status": "unacknowledged",
+  "category": "network",
+  "sources": [
+    {"source-id":"NE2/OTU-1","source-type":"network-element"},
+    {"source-id":"NE3/ODU-1","source-type":"network-element"}
+  ],
+  "probable-events": ["OTU_LOF", "ODU_AIS"],
+  "events": [
+    {"event-id":"alarm-otu-lof-001","event-type":"OTU_LOF","resource":"NE2/OTU-1","severity":"critical"},
+    {"event-id":"alarm-odu-ais-001","event-type":"ODU_AIS","resource":"NE3/ODU-1","severity":"major"}
+  ],
+  "detail": "OTN service svc-1001 is degraded. OTU_LOF and ODU_AIS alarm events were observed on the working path.",
+  "resolve-advice": "Diagnose the probable root cause and provide recovery suggestions. Prefer actions that minimize impact on running services."
+};
+
+const serviceConstraints = {
+  "service-type": "EPL",
+  "source": "NE1",
+  "destination": "NE6",
+  "bandwidth": {"value": 100, "unit": "Mbps"}
+};
+
+const intentTypeDescriptions = {
+  CREATE: 'Create a service, resource, policy, or other managed object.',
+  DELETE: 'Delete a service, resource, policy, or other managed object.',
+  MODIFY: 'Modify an existing service, resource, policy, or other managed object.',
+  QUERY: 'Query status, state, inventory, performance, or other management information.',
+  REPORT: 'Generate a report based on network, service, or operational data.',
+  DIAGNOSE: 'Analyze symptoms, alarms, performance data, or events to identify possible root causes.',
+  REMEDIATE: 'Perform corrective or recovery actions for a detected fault, degradation, or abnormal condition.',
+  OPTIMIZE: 'Optimize behavior according to performance, efficiency, cost, energy, capacity, or policy objectives.',
+  ASSURE: 'Assure a service, slice, resource, or policy objective by monitoring state and taking or recommending actions.'
+};
+
+function refreshMetadataDefaults(force = false) {
+  const stamp = Date.now();
+  const day = new Date().toISOString().slice(0,10).replaceAll('-','');
+  if (force || !document.getElementById('requestId').value) document.getElementById('requestId').value = 'req-' + stamp;
+  if (force || !document.getElementById('correlationId').value) document.getElementById('correlationId').value = 'corr-' + day + '-001';
+  if (force || !document.getElementById('intentIdInput').value) document.getElementById('intentIdInput').value = 'intent-client-' + stamp;
+}
+
+function intentTypeChanged() {
+  const type = document.getElementById('structuredType').value;
+  document.getElementById('intentTypeHelp').innerHTML = '<b>' + esc(type) + '</b> — ' + esc(intentTypeDescriptions[type] || '') +
+    '<div class="muted" style="font-size:10px;margin-top:4px">All draft-defined enumeration values are exposed. The live canned workflows focus on incident handling, service creation, and query.</div>';
+}
+
+function nowIso() { return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'); }
+function pretty(v) { return JSON.stringify(v ?? null, null, 2); }
+function esc(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function selectScenario(name) {
+  selectedScenario = name;
+  document.querySelectorAll('.scenario').forEach(x => x.classList.remove('selected'));
+  if (name === 'incident-nl') {
+    document.getElementById('scIncidentNL').classList.add('selected');
+    document.getElementById('mode').value = 'natural-language';
+    document.getElementById('nlText').value = 'Analyze the service degradation of OTN service svc-1001, identify the root cause, assess affected resources, and recommend recovery actions.';
+  } else if (name === 'incident-structured') {
+    document.getElementById('scIncidentStructured').classList.add('selected');
+    document.getElementById('mode').value = 'structured';
+    document.getElementById('structuredType').value = 'DIAGNOSE';
+    document.getElementById('targetResource').value = 'incident-56433218';
+    document.getElementById('constraintsSchema').value = INCIDENT_SCHEMA;
+    document.getElementById('priority').value = '9';
+    document.getElementById('constraints').value = pretty(incidentConstraints);
+  } else {
+    document.getElementById('scService').classList.add('selected');
+    document.getElementById('mode').value = 'structured';
+    document.getElementById('structuredType').value = 'CREATE';
+    document.getElementById('targetResource').value = 'transport-service';
+    document.getElementById('constraintsSchema').value = 'urn:demo:otn-service-intent';
+    document.getElementById('priority').value = '5';
+    document.getElementById('constraints').value = pretty(serviceConstraints);
+  }
+  modeChanged();
+  intentTypeChanged();
+}
+
+function modeChanged() {
+  const structured = document.getElementById('mode').value === 'structured';
+  document.getElementById('nlFields').style.display = structured ? 'none' : '';
+  document.getElementById('structuredFields').style.display = structured ? '' : 'none';
+}
+
+function buildRequest() {
+  refreshMetadataDefaults(false);
+  const requestId = document.getElementById('requestId').value.trim() || ('req-' + Date.now());
+  const correlation = document.getElementById('correlationId').value.trim() || 'corr-demo';
+  const mode = document.getElementById('mode').value;
+  const intent = {
+    "intent-id": document.getElementById('intentIdInput').value.trim() || ("intent-client-" + Date.now()),
+    "mode": mode,
+    "submitter": {"type":document.getElementById('submitterType').value,"id":document.getElementById('submitterId').value.trim() || 'oss-a'},
+    "timestamp": nowIso()
+  };
+  if (mode === 'natural-language') {
+    intent["natural-language"] = {"text": document.getElementById('nlText').value.trim()};
+  } else {
+    let constraints;
+    try { constraints = JSON.parse(document.getElementById('constraints').value); }
+    catch (e) { throw new Error('constraints must be valid JSON: ' + e.message); }
+    intent.structured = {
+      "type": document.getElementById('structuredType').value,
+      "target-resource": document.getElementById('targetResource').value,
+      "constraints-schema": document.getElementById('constraintsSchema').value,
+      "constraints": constraints,
+      "priority": Number(document.getElementById('priority').value)
+    };
+  }
+  return {
+    "request-id": requestId,
+    "correlation-id": correlation,
+    "tenant-id": document.getElementById('tenantId').value.trim() || 'tenant-1',
+    "intent": intent
+  };
+}
+
+async function submitIntent() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  document.getElementById('confirmationModal').classList.remove('open');
+  try {
+    lastRequest = buildRequest();
+    currentCorrelationId = lastRequest['correlation-id'];
+    currentTenantId = lastRequest['tenant-id'];
+    showJson('request');
+    const path = '/restconf/operations/ietf-nma-a2u:submit-intent';
+    const res = await fetch(path, {
+      method:'POST',
+      headers:{'Content-Type':'application/yang-data+json'},
+      body:JSON.stringify(lastRequest)
+    });
+    lastResponse = await res.json();
+    showJson('response');
+    if (!res.ok) throw new Error(lastResponse['error-message'] || 'submit-intent failed');
+    currentTaskId = lastResponse['task-id'];
+    currentIntentId = lastResponse['intent-id'];
+    document.getElementById('abortBtn').disabled = false;
+    document.getElementById('getIntentBtn').disabled = false;
+    document.getElementById('getTaskBtn').disabled = false;
+    setSubmitStatus('Intent accepted. The NMA created ' + currentTaskId + ' and started lifecycle processing.', false);
+    refreshMetadataDefaults(true);
+    updateTimeline('PENDING');
+    await establishSubscription();
+    await refreshTask();
+    await loadInteractions();
+  } catch (e) {
+    setSubmitStatus(e.message || String(e), true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function establishSubscription() {
+  if (eventSource) eventSource.close();
+  const request = {
+    "ietf-subscribed-notifications:input": {
+      "stream": "NETCONF",
+      "stream-xpath-filter": "/ietf-nma-a2u:a2u-task-notification[ietf-nma-a2u:task-id='" + currentTaskId + "']"
+    }
+  };
+  const res = await fetch('/restconf/operations/ietf-subscribed-notifications:establish-subscription', {
+    method:'POST',
+    headers:{'Content-Type':'application/yang-data+json'},
+    body:JSON.stringify(request)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error('establish-subscription failed');
+
+  // RFC 8650 uses one long-lived GET to the returned subscription URI to
+  // activate SSE. After activation, notifications are publisher-pushed on
+  // that connection; this is not periodic notification polling.
+  eventSource = new EventSource(data.uri);
+  eventSource.onmessage = event => {
+    const envelope = JSON.parse(event.data);
+    const notification = envelope['ietf-restconf:notification']['ietf-nma-a2u:a2u-task-notification'];
+    notificationEvents.push({envelope, notification});
+    activeNotificationIndex = notificationEvents.length - 1;
+    renderNotificationHistory();
+    document.getElementById('notificationJson').textContent = pretty(envelope);
+    handleNotification(notification);
+    loadInteractions();
+    if (['task-completed','task-failed'].includes(notification['notification-type'])) {
+      eventSource.close();
+    }
+  };
+  eventSource.onerror = () => {
+    // Do not allow EventSource automatic reconnection to replay a completed
+    // demo subscription. A new intent establishes a new subscription.
+    if (eventSource) eventSource.close();
+  };
+}
+
+function handleNotification(n) {
+  const type = n['notification-type'];
+  if (type === 'confirmation-required') {
+    const p = n.payload['confirmation-required'];
+    currentConfirmationId = p['confirmation-id'];
+    document.getElementById('getConfirmationBtn').disabled = false;
+    loadConfirmation(p);
+  }
+  // Retrieve the current full task object once per pushed state/progress event.
+  refreshTask();
+}
+
+async function loadConfirmation(summaryPayload) {
+  const path = '/restconf/data/ietf-nma-a2u:a2u/confirmation=' + encodeURIComponent(currentConfirmationId);
+  const res = await fetch(path);
+  const full = await res.json();
+  document.getElementById('confirmationSummary').textContent = summaryPayload.summary || 'Confirmation required.';
+  document.getElementById('confirmationKv').innerHTML =
+    '<b>confirmation-id</b><span class="mono">' + esc(full['confirmation-id']) + '</span>' +
+    '<b>type</b><span>' + esc(full.type) + '</span>' +
+    '<b>priority</b><span>' + esc(full.priority) + '</span>' +
+    '<b>timeout</b><span>' + esc(full['timeout-seconds']) + ' seconds</span>' +
+    '<b>allowed-actions</b><span>' + esc((full['allowed-actions'] || []).join(', ')) + '</span>';
+  lastObject = full;
+  document.getElementById('confirmationJson').textContent = pretty(full);
+  configureConfirmationActions(full['allowed-actions'] || []);
+  document.getElementById('confirmationModal').classList.add('open');
+}
+
+function configureConfirmationActions(allowed) {
+  const ids = {
+    'approve': 'approveBtn',
+    'reject': 'rejectBtn',
+    'modify-and-approve': 'modifyApproveBtn',
+    'escalate-to-human': 'escalateBtn'
+  };
+  Object.entries(ids).forEach(([action,id]) => {
+    document.getElementById(id).style.display = allowed.includes(action) ? '' : 'none';
+  });
+  document.getElementById('modifyBox').style.display = allowed.includes('modify-and-approve') ? '' : 'none';
+}
+
+async function resolveConfirmation(action) {
+  if (!currentConfirmationId) return;
+  const body = {
+    "request-id": "req-" + Date.now(),
+    "correlation-id": currentCorrelationId || 'corr-demo',
+    "tenant-id": currentTenantId || 'tenant-1',
+    "confirmation-id": currentConfirmationId,
+    "action": action,
+    "resolved-by": "operator-a"
+  };
+  if (action === 'modify-and-approve') {
+    try {
+      body['modified-params-schema'] = document.getElementById('modifiedParamsSchema').value.trim();
+      body['modified-params'] = JSON.parse(document.getElementById('modifiedParams').value);
+    } catch (e) {
+      setSubmitStatus('modified-params must be valid JSON: ' + e.message, true);
+      return;
+    }
+  }
+  lastRequest = body;
+  showJson('request');
+  const res = await fetch('/restconf/operations/ietf-nma-a2u:resolve-confirmation', {
+    method:'POST',
+    headers:{'Content-Type':'application/yang-data+json'},
+    body:JSON.stringify(body)
+  });
+  lastResponse = await res.json();
+  showJson('response');
+  document.getElementById('confirmationModal').classList.remove('open');
+  await refreshTask();
+  await loadInteractions();
+}
+
+async function abortTask() {
+  if (!currentTaskId) return;
+  const body = {
+    "request-id": "req-" + Date.now(),
+    "correlation-id": currentCorrelationId || 'corr-demo',
+    "tenant-id": currentTenantId || 'tenant-1',
+    "task-id": currentTaskId,
+    "reason": "Aborted by OSS operator during the demonstration."
+  };
+  const res = await fetch('/restconf/operations/ietf-nma-a2u:abort-task', {
+    method:'POST',
+    headers:{'Content-Type':'application/yang-data+json'},
+    body:JSON.stringify(body)
+  });
+  lastRequest = body;
+  lastResponse = await res.json();
+  showJson('response');
+  await refreshTask();
+  await loadInteractions();
+}
+
+async function refreshTask() {
+  if (!currentTaskId) return;
+  const path = '/restconf/data/ietf-nma-a2u:a2u/task=' + encodeURIComponent(currentTaskId);
+  const res = await fetch(path);
+  const task = await res.json();
+  lastObject = task;
+  renderTask(task);
+  if (['COMPLETED','FAILED','ABORTED'].includes(task.state)) {
+    document.getElementById('abortBtn').disabled = true;
+  }
+}
+
+function renderTask(task) {
+  const state = task.state || 'PENDING';
+  const badge = document.getElementById('taskState');
+  badge.className = 'badge ' + (state === 'COMPLETED' ? 'green' : state === 'FAILED' || state === 'ABORTED' ? 'red' : state === 'AWAITING_CONFIRMATION' ? 'purple' : 'blue');
+  badge.textContent = state;
+  updateTimeline(state);
+  document.getElementById('taskSummary').className = '';
+  document.getElementById('taskSummary').innerHTML =
+    '<div class="status-line"><div><b class="mono">' + esc(task['task-id']) + '</b><div class="muted" style="font-size:11px;margin-top:3px">parent: ' + esc(task['parent-intent-id']) + '</div></div>' +
+    '<span class="state ' + esc(state) + '">' + esc(state) + '</span></div>';
+
+  let planHtml = '<div style="height:10px"></div><div class="card-title">Execution Plan</div>';
+  (task.plan || []).forEach(step => {
+    planHtml += '<div class="plan-step"><div class="step-id">' + esc(step['step-id']) + '</div>' +
+      '<div><b>' + esc(step.action) + '</b><div class="muted mono" style="font-size:10px">' + esc(step.target || '') + '</div>' +
+      (step.observation ? '<div class="step-observation">' + esc(step.observation) + '</div>' : '') +
+      '</div><div class="state ' + esc(String(step.status).toUpperCase()) + '">' + esc(step.status) + '</div></div>';
+  });
+  document.getElementById('plan').innerHTML = planHtml;
+
+  const result = task.result || {};
+  document.getElementById('result').innerHTML = result.summary ?
+    '<div style="height:12px"></div><div class="card"><div class="card-title">Result / Intermediate Output</div><div class="card-desc">' +
+    esc(result.summary) + '</div><div style="height:8px"></div><pre class="json">' + esc(pretty(result)) + '</pre></div>' : '';
+}
+
+function updateTimeline(state) {
+  const stages = [
+    ['PENDING','Intent accepted','submit-intent output returns task-id'],
+    ['ANALYZING','Intent & context analysis','NMA interprets goal and gathers incident context'],
+    ['PLANNING','Plan generation','NMA exposes task plan'],
+    ['AWAITING_CONFIRMATION','Human-in-the-loop','confirmation-required notification + GET object'],
+    ['EXECUTING','Controller execution','NMA invokes controller functions'],
+    ['COMPLETED','Feedback','step-completed and task-completed notifications']
+  ];
+  const order = stages.map(x => x[0]);
+  const current = order.indexOf(state);
+  document.getElementById('timeline').innerHTML = stages.map((x,i) => {
+    let cls = i < current || state === 'COMPLETED' ? 'done' : i === current ? 'active' : '';
+    if (state === 'FAILED' || state === 'ABORTED') cls = i < Math.max(current,0) ? 'done' : '';
+    return '<div class="timeline-item ' + cls + '"><div class="timeline-dot">' + (i+1) + '</div>' +
+      '<div class="timeline-content"><b>' + x[1] + '</b><span>' + x[2] + '</span></div></div>';
+  }).join('');
+}
+
+function setSubmitStatus(message, isError) {
+  const box = document.getElementById('submitStatus');
+  box.className = 'notice submit-status show';
+  box.style.color = isError ? '#b42318' : '#087f5b';
+  box.style.background = isError ? '#fef3f2' : '#e6fcf5';
+  box.style.borderColor = isError ? '#fecdca' : '#abefc6';
+  box.textContent = message;
+}
+
+function renderNotificationHistory() {
+  const summary = document.getElementById('notificationSummary');
+  const count = document.getElementById('notificationCount');
+  const selector = document.getElementById('notificationSelect');
+  if (!notificationEvents.length) {
+    summary.innerHTML = '<span class="muted" style="font-size:11px">No notification received.</span>';
+    count.textContent = '0 events';
+    selector.innerHTML = '<option value="-1">No notification received</option>';
+    selector.disabled = true;
+    return;
+  }
+  const grouped = {};
+  notificationEvents.forEach((item,index) => {
+    const type = item.notification['notification-type'];
+    if (!grouped[type]) grouped[type] = {count:0,lastIndex:index};
+    grouped[type].count += 1;
+    grouped[type].lastIndex = index;
+  });
+  const activeType = notificationEvents[activeNotificationIndex].notification['notification-type'];
+  summary.innerHTML = Object.entries(grouped).map(([type,info]) =>
+    '<button class="notification-chip ' + (type === activeType ? 'active' : '') + '" onclick="selectNotification(' + info.lastIndex + ')">' +
+    esc(type) + ' ×' + info.count + '</button>'
+  ).join('');
+  count.textContent = notificationEvents.length + (notificationEvents.length === 1 ? ' event' : ' events');
+  selector.disabled = false;
+  selector.innerHTML = notificationEvents.map((item,index) =>
+    '<option value="' + index + '" ' + (index === activeNotificationIndex ? 'selected' : '') + '>#' + (index + 1) +
+    ' · ' + esc(item.notification['notification-type']) + ' · ' + esc(item.envelope['ietf-restconf:notification'].eventTime) + '</option>'
+  ).join('');
+}
+
+function selectNotification(index) {
+  if (index < 0 || index >= notificationEvents.length) return;
+  activeNotificationIndex = index;
+  renderNotificationHistory();
+  document.getElementById('notificationJson').textContent = pretty(notificationEvents[index].envelope);
+}
+
+async function viewOperationalObject(kind) {
+  let id, path;
+  if (kind === 'intent') {
+    id = currentIntentId;
+    path = '/restconf/data/ietf-nma-a2u:a2u/intent=' + encodeURIComponent(id);
+  } else if (kind === 'task') {
+    id = currentTaskId;
+    path = '/restconf/data/ietf-nma-a2u:a2u/task=' + encodeURIComponent(id);
+  } else {
+    id = currentConfirmationId;
+    path = '/restconf/data/ietf-nma-a2u:a2u/confirmation=' + encodeURIComponent(id);
+  }
+  if (!id) return;
+  const res = await fetch(path);
+  lastObject = await res.json();
+  showJson('object');
+  await loadInteractions();
+}
+
+async function loadCapabilities() {
+  const path = '/restconf/data/ietf-nma-a2u:a2u/agent-capabilities';
+  const res = await fetch(path);
+  capabilities = await res.json();
+  showJson('capability');
+  loadInteractions();
+}
+
+async function loadInteractions() {
+  const res = await fetch('/api/demo/interactions');
+  const data = await res.json();
+  const items = data.interactions || [];
+  const box = document.getElementById('interactionLog');
+  if (!items.length) {
+    box.innerHTML = '<div class="empty">No interaction yet.</div>';
+    return;
+  }
+  box.innerHTML = items.map(item => {
+    return '<div class="log-row" onclick=\'' + 'inspectInteraction(' + JSON.stringify(JSON.stringify(item)) + ')' + '\'>' +
+      '<div class="log-head"><span class="method ' + esc(item.method) + '">' + esc(item.method) + '</span>' +
+      '<span class="badge ' + (item.status < 300 ? 'green' : 'red') + '">' + esc(item.status) + '</span>' +
+      '<span class="muted" style="font-size:10px">' + esc(item.time) + '</span></div>' +
+      '<div class="log-path">' + esc(item.path) + '</div>' +
+      '<div class="log-note">' + esc(item.note || '') + '</div></div>';
+  }).join('');
+}
+
+function inspectInteraction(serialized) {
+  const item = JSON.parse(serialized);
+  lastRequest = item.request;
+  lastResponse = item.response;
+  showJson('request');
+}
+
+function showJson(which) {
+  document.querySelectorAll('.json-tabs button').forEach(x => x.classList.remove('active'));
+  const map = {request:'tabReq',response:'tabResp',object:'tabObject',capability:'tabCap'};
+  document.getElementById(map[which]).classList.add('active');
+  document.getElementById('jsonInspector').textContent =
+    pretty(which === 'request' ? lastRequest : which === 'response' ? lastResponse : which === 'object' ? lastObject : capabilities);
+}
+
+async function resetDemo() {
+  if (eventSource) eventSource.close();
+  await fetch('/api/demo/reset', {method:'POST'});
+  currentTaskId = currentIntentId = currentConfirmationId = currentCorrelationId = null;
+  currentTenantId = 'tenant-1';
+  lastRequest = lastResponse = lastObject = {};
+  notificationEvents = [];
+  activeNotificationIndex = -1;
+  document.getElementById('taskState').className = 'badge gray';
+  document.getElementById('taskState').textContent = 'NO TASK';
+  document.getElementById('taskSummary').className = 'empty';
+  document.getElementById('taskSummary').textContent = 'Submit an intent to start the demonstration.';
+  document.getElementById('plan').innerHTML = '';
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('notificationJson').textContent = 'No notification received.';
+  renderNotificationHistory();
+  document.getElementById('submitStatus').className = 'notice submit-status';
+  document.getElementById('abortBtn').disabled = true;
+  document.getElementById('getIntentBtn').disabled = true;
+  document.getElementById('getTaskBtn').disabled = true;
+  document.getElementById('getConfirmationBtn').disabled = true;
+  refreshMetadataDefaults(true);
+  updateTimeline('PENDING');
+  await loadCapabilities();
+}
+
+window.addEventListener('load', async () => {
+  initializeResizableLayout();
+  document.getElementById('constraints').value = pretty(incidentConstraints);
+  refreshMetadataDefaults(true);
+  selectScenario('incident-nl');
+  intentTypeChanged();
+  updateTimeline('PENDING');
+  try {
+    await fetch('/api/demo/health');
+    await loadCapabilities();
+  } catch (e) {
+    document.getElementById('health').className = 'badge red';
+    document.getElementById('health').textContent = '● NMA offline';
+  }
+});
+</script>
+</body>
+</html>

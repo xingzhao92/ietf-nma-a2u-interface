@@ -1,27 +1,18 @@
-# Build outputs
-build/
-*.txt
-*.html
-*.pdf
-
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.egg-info/
-dist/
+.venv/
+venv/
+.pytest_cache/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Demo runtime state
+hackathon-demo/data/interaction-log.json
+hackathon-demo/data/controller-actions.json
+hackathon-demo/data/a2u-sessions.json
+hackathon-demo/data/tasks.json
 
-# OS
+# OS / editor
 .DS_Store
 Thumbs.db
-
-# Temporary files
-*.tmp
-*.bak
+.vscode/
+.idea/

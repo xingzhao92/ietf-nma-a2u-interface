@@ -1,0 +1,2688 @@
+
+
+
+
+Network Management Operations                                    X. Zhao
+Internet-Draft                                                     CAICT
+Intended status: Standards Track                                 M. Wang
+Expires: 7 January 2027                                     China Mobile
+                                                           D. Ceccarelli
+                                                                   Cisco
+                                                                   Y. Xu
+                                                                   CAICT
+                                                             6 July 2026
+
+
+        Framework and YANG Data Model for the NMA A2U Interface
+                    draft-zhao-nmop-nma-a2u-yang-00
+
+Abstract
+
+   This document describes a framework and a YANG data model for the
+   Agent-to-User (A2U) interface of a Network Management Agent (NMA).
+   The A2U interface is a user-facing interface through which a non-
+   agent upper-layer system or user, such as an operator's OSS/BSS,
+   orchestrator, management portal, human-facing application, automation
+   system, etc., interacts with an NMA.
+
+   The A2U interface supports NMA capability discovery, unified intent
+   submission, task lifecycle management, execution plan exposure,
+   human-in-the-loop confirmation, task progress notification, and
+   consistent error reporting.
+
+   The YANG data model defined in this document includes operational
+   state data, RPC operations, and YANG notifications for the A2U
+   interface.  The model is intended to be used with YANG-based
+   management protocols.  This document does not define a separate
+   transport protocol, a new HTTP resource API, or a separate
+   notification delivery mechanism.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 1]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 7 January 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+   2.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   4
+   3.  Scope . . . . . . . . . . . . . . . . . . . . . . . . . . . .   5
+   4.  A2U Interface Positioning . . . . . . . . . . . . . . . . . .   5
+   5.  A2U Reference Framework . . . . . . . . . . . . . . . . . . .   6
+   6.  A2U Design Principles . . . . . . . . . . . . . . . . . . . .   7
+     6.1.  YANG-Based Management Protocol Reuse  . . . . . . . . . .   7
+     6.2.  Unified Intent Entry  . . . . . . . . . . . . . . . . . .   7
+     6.3.  Unified Task Lifecycle  . . . . . . . . . . . . . . . . .   7
+     6.4.  Human-in-the-Loop Confirmation  . . . . . . . . . . . . .   7
+     6.5.  YANG Notification Reuse . . . . . . . . . . . . . . . . .   7
+   7.  A2U Information Model . . . . . . . . . . . . . . . . . . . .   8
+     7.1.  Agent Capabilities  . . . . . . . . . . . . . . . . . . .   8
+     7.2.  Intent  . . . . . . . . . . . . . . . . . . . . . . . . .   8
+     7.3.  Task  . . . . . . . . . . . . . . . . . . . . . . . . . .   8
+     7.4.  Confirmation  . . . . . . . . . . . . . . . . . . . . . .   8
+     7.5.  Notification  . . . . . . . . . . . . . . . . . . . . . .   9
+   8.  YANG Data Model . . . . . . . . . . . . . . . . . . . . . . .   9
+     8.1.  Model Design  . . . . . . . . . . . . . . . . . . . . . .   9
+     8.2.  YANG Tree . . . . . . . . . . . . . . . . . . . . . . . .   9
+     8.3.  YANG Module . . . . . . . . . . . . . . . . . . . . . . .  12
+   9.  Security Considerations . . . . . . . . . . . . . . . . . . .  34
+   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  35
+   11. References  . . . . . . . . . . . . . . . . . . . . . . . . .  35
+     11.1.  Normative References . . . . . . . . . . . . . . . . . .  35
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 2]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+     11.2.  Informative References . . . . . . . . . . . . . . . . .  36
+   Appendix A.  Example A2U Interaction Using YANG-Based Management
+           Protocols . . . . . . . . . . . . . . . . . . . . . . . .  37
+   Appendix B.  JSON Examples  . . . . . . . . . . . . . . . . . . .  39
+     B.1.  Agent Capabilities  . . . . . . . . . . . . . . . . . . .  39
+     B.2.  Intent Submission RPC . . . . . . . . . . . . . . . . . .  40
+     B.3.  Task Object . . . . . . . . . . . . . . . . . . . . . . .  43
+     B.4.  Task Notifications  . . . . . . . . . . . . . . . . . . .  44
+     B.5.  Confirmation Object . . . . . . . . . . . . . . . . . . .  46
+     B.6.  Confirmation Resolution RPC . . . . . . . . . . . . . . .  47
+     B.7.  Error Response  . . . . . . . . . . . . . . . . . . . . .  48
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  48
+
+1.  Introduction
+
+   Telecommunication networks are becoming increasingly complex in
+   scale, technology composition, service diversity, and operational
+   requirements.  Traditional manual operation and fixed API-based
+   management are often insufficient to support highly automated and
+   adaptive network operations.
+
+   As defined in [I-D.zhao-nmop-network-management-agent], a Network
+   Management Agent (NMA) is an autonomous network management entity
+   with intent management, network context awareness, analysis,
+   decision-making, and execution capabilities.  It can interpret user
+   goals, plan management actions, invoke tools and interfaces, monitor
+   execution, and report results.
+
+   To allow non-agent upper-layer systems and users to consume NMA
+   capabilities in a uniform way, this document defines the Agent-to-
+   User (A2U) interface.
+
+   The A2U interface supports:
+
+   *  NMA capability discovery;
+
+   *  natural-language or structured intent submission;
+
+   *  task lifecycle monitoring;
+
+   *  execution plan exposure;
+
+   *  human-in-the-loop confirmation;
+
+   *  task progress notification;
+
+   *  consistent error reporting.
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 3]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   A2U is intended for client/server-style interaction between a non-
+   agent upper-layer system or user and an NMA.  It is not intended for
+   communication between an upper-layer NMA and a lower-layer NMA.  NMA-
+   to-NMA or Agent-to-Agent communication is outside the scope of A2U
+   and is expected to use A2A or other Agent-to-Agent interfaces.
+
+   The A2U YANG data model defines operational state data, RPC
+   operations, and notifications for NMA-facing interaction.  It does
+   not define configuration datastore nodes for network resources and
+   does not replace existing service, topology, alarm, incident, or
+   performance management models.
+
+   The model is intended to be used with YANG-based management
+   protocols.  This document does not define a separate transport
+   protocol, a new HTTP resource API, or a separate notification
+   delivery mechanism.  Subscription and delivery of A2U notifications
+   are expected to reuse existing YANG notification subscription
+   mechanisms.
+
+2.  Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals.
+
+   The following terms are defined in this document:
+
+   A2U Interface
+      The Agent-to-User interface through which a non-agent upper-layer
+      system or user consumes NMA capabilities.
+   Network Management Agent (NMA)
+      A network management entity defined in
+      [I-D.zhao-nmop-network-management-agent] with autonomous task
+      processing capabilities, which can interpret user goals, plan
+      management actions, invoke tools and interfaces, monitor
+      execution, and report results.
+   A2U Client
+      A non-agent upper-layer system or user-facing application that
+      uses the A2U interface.  Examples include an operator's OSS/BSS
+      systems, orchestrators, management portals, automation systems,
+      and human-facing applications.  An upper-layer NMA is not an A2U
+      Client in this document.
+   Intent
+      A goal description submitted to the NMA.  It can be expressed
+      using natural language or structured data.
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 4]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   Task
+      A management operation unit instantiated by the NMA for an
+      accepted intent.
+   Plan
+      A sequence of steps generated by the NMA to execute a task.
+   Confirmation
+      A pending decision object generated when a task requires explicit
+      approval, rejection, modification, or escalation.
+   A2U Notification
+      A YANG notification generated by the NMA to report A2U task
+      progress or state changes.
+   A2A Interface
+      An Agent-to-Agent interface used for interaction between agents or
+      NMAs.  A2A is outside the scope of this document.
+
+3.  Scope
+
+   This document defines the A2U interface positioning, reference
+   framework, information model, and a YANG data model for A2U
+   operational state data, RPC operations, and notifications.  It also
+   provides non-normative JSON examples illustrating A2U payloads and
+   reuse of existing IETF domain models.
+
+   This document does not define a new transport protocol, a new HTTP
+   resource API, a new notification delivery mechanism, Agent-to-Agent
+   communication, domain-specific service models, LLM implementation
+   details, or internal NMA implementation mechanisms.
+
+4.  A2U Interface Positioning
+
+   A2U is used when a non-agent upper-layer system or user invokes NMA
+   capabilities.  It is a client/server-style interface between an A2U
+   client and an NMA acting as the A2U server.
+
+   A2U is not used for communication between an upper-layer NMA and a
+   lower-layer NMA.  Such communication is outside the scope of this
+   document and is expected to use A2A or other Agent-to-Agent
+   interfaces.
+
+   This document focuses only on the logical A2U interaction between a
+   non-agent A2U client and an NMA acting as the A2U server.
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 5]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+5.  A2U Reference Framework
+
+   The figure below illustrates the logical A2U relationship between a
+   non-agent upper-layer system or user and an NMA.  It is intended to
+   show the A2U client/server interaction model only.  The deployment
+   relationship between the NMA, controllers, and network resources is
+   outside the scope of this figure.
+
+   +----------------------------------------------------------+
+   |             Non-agent Upper-Layer System / User          |
+   |                       (A2U Client)                       |
+   |                                                          |
+   |  Human Operator | OSS/BSS | Orchestrator | Portal | ...  |
+   +---------------------------^------------------------------+
+                               |
+                               | Agent-to-User Interface (A2U)
+                               |
+                               | - capability discovery
+                               | - intent submission
+                               | - task state access
+                               | - confirmation access / resolution
+                               | - notification subscription
+                               |
+   +---------------------------v------------------------------+
+   |             Network Management Agent (NMA)               |
+   |                      (A2U Server)                        |
+   |  +----------------------------------------------------+  |
+   |  |                   A2U Function                     |  |
+   |  |----------------------------------------------------|  |
+   |  | - Agent capability                                 |  |
+   |  | - Intent                                           |  |
+   |  | - Task / Plan                                      |  |
+   |  | - Confirmation                                     |  |
+   |  | - Notification / Result                            |  |
+   |  +----------------------------------------------------+  |
+   +----------------------------------------------------------+
+
+                    Figure 1: Framework of A2U interface
+
+   The A2U function provides capability discovery, intent submission,
+   task state access, confirmation access and resolution, notification
+   subscription, and result reporting.  The A2U data model defined in
+   this document focuses on the information exchanged between the A2U
+   client and the A2U server.
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 6]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+6.  A2U Design Principles
+
+6.1.  YANG-Based Management Protocol Reuse
+
+   The A2U model is defined as a YANG module containing operational
+   state data, RPC operations, and notifications.  It is intended to be
+   carried by existing YANG-based management protocols rather than by a
+   dedicated new protocol.
+
+   Protocol-specific details such as transport, URI layout, message
+   framing, subscription establishment, and notification delivery are
+   outside the scope of this document.
+
+6.2.  Unified Intent Entry
+
+   Natural-language and structured input share the same intent
+   submission entry and the same task lifecycle.  The mode field
+   distinguishes the input type.
+
+6.3.  Unified Task Lifecycle
+
+   After an intent is accepted, the NMA creates or associates a task.
+   The task lifecycle includes:
+
+   PENDING -> ANALYZING -> PLANNING -> AWAITING_CONFIRMATION
+           -> EXECUTING -> COMPLETED / FAILED / ABORTED
+
+                       Figure 2: Lifecycle of a task
+
+   Clarification may be requested when input is incomplete or ambiguous.
+
+6.4.  Human-in-the-Loop Confirmation
+
+   When a task violates a policy, affects critical resources, or
+   requires human review, the NMA creates a confirmation object and
+   suspends execution until the confirmation is resolved.
+
+6.5.  YANG Notification Reuse
+
+   A2U task progress and state changes are reported using YANG
+   notifications.  This document defines the notification content in the
+   A2U YANG module.  Subscription, filtering, and delivery of A2U
+   notifications are expected to use existing mechanisms such as
+   Subscription to YANG Notifications [RFC8639].
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 7]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   Where an implementation supports subscription to operational
+   datastore updates, YANG-Push [RFC8641] can also be used to observe
+   changes to A2U operational state data such as task and confirmation
+   state.
+
+7.  A2U Information Model
+
+   The A2U information model contains five core components.
+
+7.1.  Agent Capabilities
+
+   The agent-capabilities object describes the NMA and its exposed
+   skills, including supported input schemas, confirmation requirements,
+   and global policies.
+
+7.2.  Intent
+
+   The intent object represents a user or system goal.  Natural-language
+   input includes the original user text.  Structured input includes the
+   operation type, target resource, constraints, and priority.
+
+   The intent-type identifies the high-level operation category.  It is
+   not intended to encode all domain-specific subtypes.  Domain-specific
+   details, such as service assurance objectives, fault symptoms,
+   recovery constraints, or optimization policies, are carried in the
+   constraints field.
+
+   The constraints field of a structured intent is modeled as anydata,
+   allowing it to carry domain-specific information objects defined by
+   other IETF YANG modules.  For example, in fault handling and service
+   assurance scenarios, the constraints MAY include incident information
+   as defined in [I-D.ietf-nmop-network-incident-yang], such as
+   incident-id, incident-no, priority, category, sources, probable-
+   causes, probable-events, and events, to provide the NMA with
+   structured incident context for analysis and remediation.
+
+7.3.  Task
+
+   The task object represents the lifecycle of an accepted intent.  It
+   exposes task state, execution plan information, and task results.
+
+7.4.  Confirmation
+
+   The confirmation object represents a pending or resolved decision
+   point.  It provides the context, allowed actions, status, and
+   resolution information needed for human-in-the-loop or system-in-the-
+   loop decision making.
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 8]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+7.5.  Notification
+
+   A2U notifications report task progress and state changes.  The
+   notification payload is modeled as a YANG choice so that different
+   notification types can carry different payload structures.
+
+8.  YANG Data Model
+
+8.1.  Model Design
+
+   The model defined in this document (ietf-nma-a2u) contains
+   operational state data, RPC operations, and a YANG notification for
+   the A2U interface.  The operational state data expose NMA
+   capabilities, submitted intents, tasks, and pending or resolved
+   confirmations.  RPC operations are used for intent submission,
+   confirmation resolution, and task abort.  The notification reports
+   task progress and state changes.
+
+   Domain-specific information can be carried using anydata fields with
+   an associated schema identifier.  For example, incident-related
+   information can be aligned with [I-D.ietf-nmop-network-incident-yang]
+   without redefining the incident model in this document.
+
+8.2.  YANG Tree
+
+   The following tree provides a non-normative overview of the defined
+   YANG model.
+
+   module: ietf-nma-a2u
+
+     +--ro a2u
+        +--ro agent-capabilities
+        |  +--ro agent-id                    string
+        |  +--ro version                     string
+        |  +--ro skills* [skill-id]
+        |  |  +--ro skill-id                 string
+        |  |  +--ro name                     string
+        |  |  +--ro description?             string
+        |  |  +--ro input-schema?            union
+        |  |  +--ro confirmation-required?   boolean
+        |  |  +--ro tags*                    string
+        |  +--ro policies
+        |     +--ro human-in-the-loop?       boolean
+        |     +--ro max-timeout-seconds?     uint32
+        +--ro intent* [intent-id]
+        |  +--ro intent-id                   string
+        |  +--ro mode                        intent-mode
+        |  +--ro submitter
+
+
+
+Zhao, et al.             Expires 7 January 2027                 [Page 9]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+        |  |  +--ro type?                    enumeration
+        |  |  +--ro id?                      string
+        |  +--ro timestamp?                  yang:date-and-time
+        |  +--ro state?                      task-state
+        |  +--ro task-id?                    string
+        |  +--ro (mode-choice)
+        |  |  +--:(natural-language)
+        |  |  |  +--ro natural-language
+        |  |  |     +--ro text               string
+        |  |  +--:(structured)
+        |  |     +--ro structured
+        |  |        +--ro type               intent-type
+        |  |        +--ro target-resource?   string
+        |  |        +--ro constraints-schema? inet:uri
+        |  |        +--ro constraints        anydata
+        |  |        +--ro priority?          uint8
+        |  +--ro estimated-completion?       uint32
+        +--ro task* [task-id]
+        |  +--ro task-id                     string
+        |  +--ro parent-intent-id            string
+        |  +--ro state                       task-state
+        |  +--ro created-at                  yang:date-and-time
+        |  +--ro updated-at                  yang:date-and-time
+        |  +--ro plan* [step-id]
+        |  |  +--ro step-id                  string
+        |  |  +--ro action                   string
+        |  |  +--ro target?                  string
+        |  |  +--ro input-params?            anydata
+        |  |  +--ro status                   step-state
+        |  |  +--ro observation?             string
+        |  |  +--ro started-at?              yang:date-and-time
+        |  |  +--ro completed-at?            yang:date-and-time
+        |  +--ro result
+        |     +--ro summary?                 string
+        |     +--ro affected-resources*      string
+        |     +--ro output-data?             anydata
+        +--ro confirmation* [confirmation-id]
+           +--ro confirmation-id             string
+           +--ro task-id                     string
+           +--ro type                        confirmation-type
+           +--ro priority?                   uint8
+           +--ro timeout-seconds?            uint32
+           +--ro context-schema?             inet:uri
+           +--ro context                     anydata
+           +--ro allowed-actions*            confirmation-action
+           +--ro status?                     confirmation-status
+           +--ro resolution
+              +--ro action?                  confirmation-action
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 10]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+              +--ro modified-params-schema?  inet:uri
+              +--ro modified-params?         anydata
+              +--ro resolved-by?             string
+              +--ro resolved-at?             yang:date-and-time
+
+     rpcs:
+       +---x submit-intent
+       |  +---w input
+       |  |  +---w request-id?           string
+       |  |  +---w correlation-id?       string
+       |  |  +---w tenant-id?            string
+       |  |  +---w intent
+       |  |     +---w uses intent-object
+       |  +--ro output
+       |     +--ro request-id?           string
+       |     +--ro correlation-id?       string
+       |     +--ro tenant-id?            string
+       |     +--ro accepted              boolean
+       |     +--ro intent-id?            string
+       |     +--ro task-id?              string
+       |     +--ro state?                task-state
+       |     +--ro task
+       |     |  +--ro uses task-object
+       |     +--ro error
+       |        +--ro uses error-info
+       +---x resolve-confirmation
+       |  +---w input
+       |  |  +---w request-id?           string
+       |  |  +---w correlation-id?       string
+       |  |  +---w tenant-id?            string
+       |  |  +---w confirmation-id       string
+       |  |  +---w action                confirmation-action
+       |  |  +---w modified-params-schema? inet:uri
+       |  |  +---w modified-params?      anydata
+       |  |  +---w resolved-by?          string
+       |  +--ro output
+       |     +--ro confirmation-id?      string
+       |     +--ro task-id?              string
+       |     +--ro status?               confirmation-status
+       |     +--ro task-state?           task-state
+       |     +--ro error
+       |        +--ro uses error-info
+       +---x abort-task
+          +---w input
+          |  +---w request-id?           string
+          |  +---w correlation-id?       string
+          |  +---w tenant-id?            string
+          |  +---w task-id               string
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 11]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+          |  +---w reason?               string
+          +--ro output
+             +--ro task-id?              string
+             +--ro state?                task-state
+             +--ro error
+                +--ro uses error-info
+
+     notifications:
+       +---n a2u-task-notification
+          +--ro task-id                  string
+          +--ro intent-id?               string
+          +--ro notification-type        a2u-notification-type
+          +--ro time?                    yang:date-and-time
+          +--ro payload
+             +--ro (notification-payload)
+                +--:(plan-generated)
+                +--:(confirmation-required)
+                +--:(step-completed)
+                +--:(step-failed)
+                +--:(task-completed)
+                +--:(task-failed)
+
+               Figure 3: YANG tree of ietf-nma-a2u YANG model
+
+8.3.  YANG Module
+
+   module ietf-nma-a2u {
+     yang-version 1.1;
+     namespace "urn:ietf:params:xml:ns:yang:ietf-nma-a2u";
+     prefix nmaa2u;
+
+     import ietf-yang-types {
+       prefix yang;
+       reference
+         "RFC 6991: Common YANG Data Types";
+     }
+
+     import ietf-inet-types {
+       prefix inet;
+       reference
+         "RFC 6991: Common YANG Data Types";
+     }
+
+     organization
+       "IETF NMOP Working Group";
+
+     contact
+       "WG Web:  <https://datatracker.ietf.org/wg/nmop/>
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 12]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+        WG List: <mailto:nmop@ietf.org>
+
+        Editor:  Xing Zhao
+                 <mailto:zhaoxing@caict.ac.cn>";
+
+     description
+       "This module defines operational state data, RPC operations,
+        and notifications for the Agent-to-User (A2U) interface of a
+        Network Management Agent (NMA).  The module is used between a
+        non-agent A2U client and an NMA.";
+
+     revision 2026-06-30 {
+       description
+         "Initial revision.";
+       reference
+         "RFC XXXX: Framework and YANG Data Model for the NMA A2U
+          Interface.";
+     }
+
+     typedef intent-mode {
+       type enumeration {
+         enum natural-language {
+           description "Intent expressed using natural language.";
+         }
+         enum structured {
+           description "Intent expressed using structured data.";
+         }
+       }
+       description
+         "Intent input mode.";
+     }
+
+     typedef intent-type {
+       type enumeration {
+         enum CREATE {
+           description
+             "Create a service, resource, policy, or other managed object.";
+         }
+         enum DELETE {
+           description
+             "Delete a service, resource, policy, or other managed object.";
+         }
+         enum MODIFY {
+           description
+             "Modify an existing service, resource, policy, or other
+              managed object.";
+         }
+         enum QUERY {
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 13]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+           description
+             "Query status, state, inventory, performance, or other
+              management information.";
+         }
+         enum REPORT {
+           description
+             "Generate a report based on network, service, or operational
+              data.";
+         }
+         enum DIAGNOSE {
+           description
+             "Analyze symptoms, alarms, performance data, or events to
+              identify possible root causes.";
+         }
+         enum REMEDIATE {
+           description
+             "Perform corrective or recovery actions for a detected fault,
+              degradation, or abnormal condition.";
+         }
+         enum OPTIMIZE {
+           description
+             "Optimize service or network behavior according to performance,
+              efficiency, cost, energy, capacity, or policy objectives.";
+         }
+         enum ASSURE {
+           description
+             "Assure a service, slice, resource, or policy objective by
+              monitoring its state and taking or recommending actions when
+              needed.";
+         }
+       }
+       description
+         "High-level structured intent operation category.  Domain-specific
+          subtypes and constraints are carried in the constraints payload.";
+     }
+
+     typedef task-state {
+       type enumeration {
+         enum PENDING {
+           description "Task has been created and is awaiting processing.";
+         }
+         enum ANALYZING {
+           description "The NMA is analyzing the intent.";
+         }
+         enum AWAITING_CLARIFICATION {
+           description "Additional information is required.";
+         }
+         enum PLANNING {
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 14]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+           description "The NMA is generating an execution plan.";
+         }
+         enum AWAITING_CONFIRMATION {
+           description "The task is suspended until confirmation is resolved.";
+         }
+         enum EXECUTING {
+           description "The NMA is executing the task.";
+         }
+         enum COMPLETED {
+           description "The task has completed successfully.";
+         }
+         enum FAILED {
+           description "The task has failed.";
+         }
+         enum ABORTED {
+           description "The task has been aborted.";
+         }
+       }
+       description
+         "Task lifecycle state.";
+     }
+
+     typedef confirmation-type {
+       type enumeration {
+         enum EXECUTION {
+           description "Confirmation before executing an action.";
+         }
+         enum PARAMETER_CHANGE {
+           description "Confirmation of parameter changes.";
+         }
+         enum DESTRUCTIVE_OPERATION {
+           description
+             "Confirmation of a destructive or service-affecting operation.";
+         }
+         enum POLICY_VIOLATION {
+           description
+             "Confirmation of an action that violates or exceeds a policy.";
+         }
+       }
+       description
+         "Confirmation type.";
+     }
+
+     typedef a2u-notification-type {
+       type enumeration {
+         enum plan-generated {
+           description "An execution plan has been generated.";
+         }
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 15]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+         enum confirmation-required {
+           description "Confirmation is required.";
+         }
+         enum step-completed {
+           description "A plan step has completed.";
+         }
+         enum step-failed {
+           description "A plan step has failed.";
+         }
+         enum task-completed {
+           description "The task has completed.";
+         }
+         enum task-failed {
+           description "The task has failed.";
+         }
+       }
+       description
+         "Type of A2U task notification.";
+     }
+
+     typedef step-state {
+       type enumeration {
+         enum pending {
+           description "Step is pending.";
+         }
+         enum running {
+           description "Step is running.";
+         }
+         enum completed {
+           description "Step has completed.";
+         }
+         enum failed {
+           description "Step has failed.";
+         }
+         enum skipped {
+           description "Step has been skipped.";
+         }
+       }
+       description
+         "Plan step state.";
+     }
+
+     typedef confirmation-action {
+       type enumeration {
+         enum approve {
+           description "Approve the proposed action.";
+         }
+         enum reject {
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 16]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+           description "Reject the proposed action.";
+         }
+         enum modify-and-approve {
+           description "Modify parameters and approve the action.";
+         }
+         enum escalate-to-human {
+           description "Escalate the decision to a human operator.";
+         }
+       }
+       description
+         "Confirmation resolution action.";
+     }
+
+     typedef confirmation-status {
+       type enumeration {
+         enum pending {
+           description "Confirmation is waiting for resolution.";
+         }
+         enum approved {
+           description "Confirmation has been approved.";
+         }
+         enum rejected {
+           description "Confirmation has been rejected.";
+         }
+         enum modified {
+           description "Confirmation has been modified and approved.";
+         }
+         enum expired {
+           description "Confirmation has expired.";
+         }
+         enum escalated {
+           description "Confirmation has been escalated.";
+         }
+       }
+       description
+         "Confirmation status.";
+     }
+
+     typedef error-type {
+       type enumeration {
+         enum invalid-request {
+           description "The request is invalid.";
+         }
+         enum unauthorized {
+           description "Authentication is required or has failed.";
+         }
+         enum forbidden {
+           description "The requester is not authorized.";
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 17]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+         }
+         enum not-found {
+           description "The requested object was not found.";
+         }
+         enum conflict {
+           description "The request conflicts with the current state.";
+         }
+         enum unprocessable-content {
+           description "The request cannot be processed semantically.";
+         }
+         enum internal-error {
+           description "An internal error occurred.";
+         }
+       }
+       description
+         "A2U error type.";
+     }
+
+     grouping submitter-info {
+       description
+         "Information about the user or non-agent upper-layer system that
+          submitted the request.";
+
+       leaf type {
+         type enumeration {
+           enum user {
+             description "Human user.";
+           }
+           enum system {
+             description "Non-agent upper-layer system.";
+           }
+         }
+         description
+           "Submitter type.  The system value represents a non-agent
+            upper-layer system.";
+       }
+
+       leaf id {
+         type string;
+         description
+           "Submitter identifier.";
+       }
+     }
+
+     grouping message-metadata {
+       description
+         "Common metadata used for request correlation and tenancy context.";
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 18]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+       leaf request-id {
+         type string;
+         description
+           "Identifier of the request.";
+       }
+
+       leaf correlation-id {
+         type string;
+         description
+           "Identifier used to correlate related A2U interactions.";
+       }
+
+       leaf tenant-id {
+         type string;
+         description
+           "Identifier of the tenant, customer, organization, project,
+            administrative domain, or other management context associated
+            with the request.";
+       }
+     }
+
+     grouping error-info {
+       description
+         "Common error information returned by the A2U interface.";
+
+       leaf error-type {
+         type error-type;
+         description "Error type.";
+       }
+
+       leaf error-code {
+         type string;
+         description "Machine-readable error code.";
+       }
+
+       leaf error-message {
+         type string;
+         description "Human-readable error message.";
+       }
+
+       leaf retryable {
+         type boolean;
+         default "false";
+         description "Whether retry may succeed.";
+       }
+
+       leaf target {
+         type string;
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 19]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+         description "Target object or field related to the error.";
+       }
+
+       anydata details {
+         description "Additional error details.";
+       }
+     }
+
+     grouping agent-capabilities-object {
+       description
+         "Capability discovery information exposed by the NMA.";
+
+       leaf agent-id {
+         type string;
+         mandatory true;
+         description "NMA identifier.";
+       }
+
+       leaf version {
+         type string;
+         mandatory true;
+         description "NMA version.";
+       }
+
+       list skills {
+         key "skill-id";
+         description "Skills exposed by the NMA.";
+
+         leaf skill-id {
+           type string;
+           description "Skill identifier.";
+         }
+
+         leaf name {
+           type string;
+           mandatory true;
+           description "Human-readable skill name.";
+         }
+
+         leaf description {
+           type string;
+           description "Skill description.";
+         }
+
+         leaf input-schema {
+           type union {
+             type inet:uri;
+             type string;
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 20]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+           }
+           description
+             "Input schema URI or inline schema description.";
+         }
+
+         leaf confirmation-required {
+           type boolean;
+           default "false";
+           description
+             "Whether this skill normally requires confirmation before
+              execution.";
+         }
+
+         leaf-list tags {
+           type string;
+           description
+             "Optional tags used to classify or discover this skill.";
+         }
+       }
+
+       container policies {
+         description "Global policies advertised by the NMA.";
+
+         leaf human-in-the-loop {
+           type boolean;
+           default "true";
+           description "Whether human-in-the-loop is enabled by default.";
+         }
+
+         leaf max-timeout-seconds {
+           type uint32;
+           units "seconds";
+           description "Maximum timeout in seconds.";
+         }
+       }
+     }
+
+     grouping intent-object {
+       description
+         "Intent submitted to the NMA.";
+
+       leaf intent-id {
+         type string;
+         description "Intent identifier.";
+       }
+
+       leaf mode {
+         type intent-mode;
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 21]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+         mandatory true;
+         description "Intent input mode.";
+       }
+
+       container submitter {
+         description "Submitter information.";
+         uses submitter-info;
+       }
+
+       leaf timestamp {
+         type yang:date-and-time;
+         description "Submission timestamp.";
+       }
+
+       leaf state {
+         type task-state;
+         description "Current processing state associated with this intent.";
+       }
+
+       leaf task-id {
+         type string;
+         description "Associated task identifier.";
+       }
+
+       choice mode-choice {
+         description "Mode-specific intent content.";
+
+         case natural-language {
+           container natural-language {
+             description "Natural-language input.";
+
+             leaf text {
+               type string;
+               mandatory true;
+               description
+                 "Natural-language text submitted by the user or system.";
+             }
+           }
+         }
+
+         case structured {
+           container structured {
+             description "Structured input.";
+
+             leaf type {
+               type intent-type;
+               mandatory true;
+               description "High-level operation category.";
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 22]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+             }
+
+             leaf target-resource {
+               type string;
+               description "Target service, resource, slice, domain, or object.";
+             }
+
+             leaf constraints-schema {
+               type inet:uri;
+               description "Schema used to interpret constraints.";
+             }
+
+             anydata constraints {
+               mandatory true;
+               description
+                 "Domain-specific constraints. This field MAY carry
+                  information objects defined by other IETF YANG modules.
+                  For example, in fault handling scenarios, incident
+                  information as defined in the ietf-incident module MAY
+                  be included.";
+             }
+
+             leaf priority {
+               type uint8 {
+                 range "1..10";
+               }
+               default "5";
+               description "Intent priority.";
+             }
+           }
+         }
+       }
+
+       leaf estimated-completion {
+         type uint32;
+         units "seconds";
+         description "Estimated completion time.";
+       }
+     }
+
+     grouping plan-step {
+       description
+         "A step in a task execution plan.";
+
+       leaf step-id {
+         type string;
+         description "Step identifier.";
+       }
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 23]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+       leaf action {
+         type string;
+         mandatory true;
+         description "Action to be performed.";
+       }
+
+       leaf target {
+         type string;
+         description "Target of the action.";
+       }
+
+       anydata input-params {
+         description "Step input parameters.";
+       }
+
+       leaf status {
+         type step-state;
+         mandatory true;
+         description "Step status.";
+       }
+
+       leaf observation {
+         type string;
+         description "Observation or result generated by this step.";
+       }
+
+       leaf started-at {
+         type yang:date-and-time;
+         description "Step start time.";
+       }
+
+       leaf completed-at {
+         type yang:date-and-time;
+         description "Step completion time.";
+       }
+     }
+
+     grouping task-object {
+       description
+         "Task lifecycle information.";
+
+       leaf task-id {
+         type string;
+         description "Task identifier.";
+       }
+
+       leaf parent-intent-id {
+         type string;
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 24]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+         mandatory true;
+         description "Identifier of the parent intent.";
+       }
+
+       leaf state {
+         type task-state;
+         mandatory true;
+         description "Current task state.";
+       }
+
+       leaf created-at {
+         type yang:date-and-time;
+         mandatory true;
+         description "Task creation time.";
+       }
+
+       leaf updated-at {
+         type yang:date-and-time;
+         mandatory true;
+         description "Last task update time.";
+       }
+
+       list plan {
+         key "step-id";
+         description "Execution plan.";
+         uses plan-step;
+       }
+
+       container result {
+         description "Task result or intermediate output.";
+
+         leaf summary {
+           type string;
+           description "Result summary.";
+         }
+
+         leaf-list affected-resources {
+           type string;
+           description "Resources affected by the task.";
+         }
+
+         anydata output-data {
+           description "Structured output data.";
+         }
+       }
+     }
+
+     grouping confirmation-object {
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 25]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+       description
+         "Confirmation information used for human-in-the-loop or
+          system-in-the-loop decision making.";
+
+       leaf confirmation-id {
+         type string;
+         description "Confirmation identifier.";
+       }
+
+       leaf task-id {
+         type string;
+         mandatory true;
+         description "Associated task identifier.";
+       }
+
+       leaf type {
+         type confirmation-type;
+         mandatory true;
+         description "Confirmation type.";
+       }
+
+       leaf priority {
+         type uint8 {
+           range "1..10";
+         }
+         default "5";
+         description "Confirmation priority.";
+       }
+
+       leaf timeout-seconds {
+         type uint32;
+         default "300";
+         units "seconds";
+         description "Timeout for resolving the confirmation.";
+       }
+
+       leaf context-schema {
+         type inet:uri;
+         description "Schema used to interpret context.";
+       }
+
+       anydata context {
+         mandatory true;
+         description "Context needed to resolve the confirmation.";
+       }
+
+       leaf-list allowed-actions {
+         type confirmation-action;
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 26]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+         min-elements 1;
+         description "Actions allowed for this confirmation.";
+       }
+
+       leaf status {
+         type confirmation-status;
+         default "pending";
+         description "Confirmation status.";
+       }
+
+       container resolution {
+         description "Final resolution of the confirmation.";
+
+         leaf action {
+           type confirmation-action;
+           description "Selected resolution action.";
+         }
+
+         leaf modified-params-schema {
+           type inet:uri;
+           description "Schema used to interpret modified-params.";
+         }
+
+         anydata modified-params {
+           description "Modified parameters.";
+         }
+
+         leaf resolved-by {
+           type string;
+           description "Resolver identifier.";
+         }
+
+         leaf resolved-at {
+           type yang:date-and-time;
+           description "Resolution time.";
+         }
+       }
+     }
+
+     container a2u {
+       config false;
+       description
+         "Operational state data for the A2U interface.";
+
+       container agent-capabilities {
+         description
+           "NMA capabilities exposed through A2U.";
+         uses agent-capabilities-object;
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 27]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+       }
+
+       list intent {
+         key "intent-id";
+         description
+           "Intents submitted through A2U and retained as operational
+            state for tracking.";
+         uses intent-object;
+       }
+
+       list task {
+         key "task-id";
+         description
+           "Tasks created or associated with accepted intents.";
+         uses task-object;
+       }
+
+       list confirmation {
+         key "confirmation-id";
+         description
+           "Confirmation objects generated by the NMA.";
+         uses confirmation-object;
+       }
+     }
+
+     rpc submit-intent {
+       description
+         "Submit an intent to the NMA.";
+       input {
+         uses message-metadata;
+         container intent {
+           description "Submitted intent.";
+           uses intent-object;
+         }
+       }
+       output {
+         uses message-metadata;
+         leaf accepted {
+           type boolean;
+           mandatory true;
+           description "Whether the intent was accepted.";
+         }
+         leaf intent-id {
+           type string;
+           description "Accepted intent identifier.";
+         }
+         leaf task-id {
+           type string;
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 28]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+           description "Created or associated task identifier.";
+         }
+         leaf state {
+           type task-state;
+           description "Current task state.";
+         }
+         container task {
+           description "Task information when available.";
+           uses task-object;
+         }
+         container error {
+           description "Error information.";
+           uses error-info;
+         }
+       }
+     }
+
+     rpc resolve-confirmation {
+       description
+         "Resolve a pending confirmation.";
+       input {
+         uses message-metadata;
+         leaf confirmation-id {
+           type string;
+           mandatory true;
+           description "Confirmation identifier.";
+         }
+         leaf action {
+           type confirmation-action;
+           mandatory true;
+           description "Selected resolution action.";
+         }
+         leaf modified-params-schema {
+           type inet:uri;
+           description "Schema used to interpret modified-params.";
+         }
+         anydata modified-params {
+           description "Modified parameters.";
+         }
+         leaf resolved-by {
+           type string;
+           description "Resolver identifier.";
+         }
+       }
+       output {
+         leaf confirmation-id {
+           type string;
+           description "Confirmation identifier.";
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 29]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+         }
+         leaf task-id {
+           type string;
+           description "Associated task identifier.";
+         }
+         leaf status {
+           type confirmation-status;
+           description "Updated confirmation status.";
+         }
+         leaf task-state {
+           type task-state;
+           description "Updated task state.";
+         }
+         container error {
+           description "Error information.";
+           uses error-info;
+         }
+       }
+     }
+
+     rpc abort-task {
+       description
+         "Abort an A2U task.";
+       input {
+         uses message-metadata;
+         leaf task-id {
+           type string;
+           mandatory true;
+           description "Task identifier.";
+         }
+         leaf reason {
+           type string;
+           description "Reason for aborting the task.";
+         }
+       }
+       output {
+         leaf task-id {
+           type string;
+           description "Task identifier.";
+         }
+         leaf state {
+           type task-state;
+           description "Updated task state.";
+         }
+         container error {
+           description "Error information.";
+           uses error-info;
+         }
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 30]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+       }
+     }
+
+     notification a2u-task-notification {
+       description
+         "Notification generated when an A2U task changes state or
+          produces progress information.";
+
+       leaf task-id {
+         type string;
+         mandatory true;
+         description "Associated task identifier.";
+       }
+
+       leaf intent-id {
+         type string;
+         description "Associated intent identifier.";
+       }
+
+       leaf notification-type {
+         type a2u-notification-type;
+         mandatory true;
+         description "A2U notification type.";
+       }
+
+       leaf time {
+         type yang:date-and-time;
+         description "Time when the notification was generated.";
+       }
+
+       container payload {
+         description "Notification-type-specific payload.";
+
+         choice notification-payload {
+           description "Payload selected according to notification type.";
+
+           case plan-generated {
+             container plan-generated {
+               leaf step-count {
+                 type uint32;
+                 mandatory true;
+                 description "Number of generated plan steps.";
+               }
+               leaf estimated-duration {
+                 type uint32;
+                 units "seconds";
+                 description "Estimated execution duration.";
+               }
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 31]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+             }
+           }
+
+           case confirmation-required {
+             container confirmation-required {
+               description
+                 "Payload carried when a task requires confirmation.  The
+                  payload provides a summary of the confirmation so that
+                  the client can present the decision request without
+                  necessarily retrieving the full confirmation object.";
+
+               leaf confirmation-id {
+                 type string;
+                 mandatory true;
+                 description
+                   "Identifier of the confirmation object created by the
+                    NMA.  The full confirmation object can be read from
+                    A2U operational state data using this identifier.";
+               }
+
+               leaf confirmation-type {
+                 type confirmation-type;
+                 description
+                   "Type of confirmation required.";
+               }
+
+               leaf priority {
+                 type uint8 {
+                   range "1..10";
+                 }
+                 description
+                   "Priority of the confirmation.";
+               }
+
+               leaf timeout-seconds {
+                 type uint32;
+                 units "seconds";
+                 description
+                   "Timeout for resolving the confirmation.";
+               }
+
+               leaf context-schema {
+                 type inet:uri;
+                 description
+                   "Schema used to interpret the confirmation context.";
+               }
+
+               leaf summary {
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 32]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+                 type string;
+                 description
+                   "Human-readable summary of the confirmation request.";
+               }
+
+               leaf-list allowed-actions {
+                 type confirmation-action;
+                 description
+                   "Actions allowed for this confirmation.";
+               }
+             }
+           }
+
+           case step-completed {
+             container step-completed {
+               leaf step-id {
+                 type string;
+                 mandatory true;
+                 description "Completed step identifier.";
+               }
+               leaf observation {
+                 type string;
+                 description "Step observation.";
+               }
+             }
+           }
+
+           case step-failed {
+             container step-failed {
+               leaf step-id {
+                 type string;
+                 mandatory true;
+                 description "Failed step identifier.";
+               }
+               leaf exception-type {
+                 type string;
+                 mandatory true;
+                 description "Exception type.";
+               }
+               leaf affected-scope {
+                 type string;
+                 description "Affected scope.";
+               }
+               leaf-list remedial-suggestions {
+                 type string;
+                 description "Suggested remedial actions.";
+               }
+             }
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 33]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+           }
+
+           case task-completed {
+             container task-completed {
+               leaf summary {
+                 type string;
+                 mandatory true;
+                 description "Task completion summary.";
+               }
+               leaf-list affected-resources {
+                 type string;
+                 description "Affected resources.";
+               }
+             }
+           }
+
+           case task-failed {
+             container task-failed {
+               leaf reason {
+                 type string;
+                 mandatory true;
+                 description "Task failure reason.";
+               }
+               leaf failed-step-id {
+                 type string;
+                 description "Failed step identifier.";
+               }
+             }
+           }
+         }
+       }
+     }
+   }
+
+9.  Security Considerations
+
+   The A2U YANG module can expose sensitive operational information,
+   including intents, tasks, plans, affected resources, confirmation
+   context, notifications, and results.
+
+   The YANG module specified in this document is designed to be accessed
+   via YANG-based management protocols, such as NETCONF [RFC6241] and
+   RESTCONF [RFC8040].  Implementations are expected to provide secure
+   transport, mutual authentication, authorization, confidentiality
+   protection, integrity protection, replay protection, audit logging,
+   and policy enforcement.
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 34]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   RPC operations such as submit-intent, resolve-confirmation, and
+   abort-task can affect network operations indirectly through the NMA.
+   Access to these RPC operations needs to be restricted to authorized
+   clients.
+
+   Natural-language inputs and AI-assisted interpretation may introduce
+   risks such as ambiguous instructions, malicious input, prompt
+   injection, or incorrect interpretation.  Implementations should
+   validate interpreted results before execution and should use
+   confirmation or policy checks for risky operations.
+
+   Confirmation resolution operations can affect network behavior and
+   therefore require authorization and audit logging.
+
+   A2U notifications may contain sensitive operational information.
+   Implementations should ensure that notification subscribers are
+   authorized to receive the corresponding notifications.
+
+   Future versions of this document are expected to expand this section.
+
+10.  IANA Considerations
+
+   This version of the document does not request any IANA actions.
+
+   Future versions may request registration of the YANG module namespace
+   and module name if the YANG module becomes normative.
+
+   Expected future namespace:
+
+   urn:ietf:params:xml:ns:yang:ietf-nma-a2u
+
+   Expected future module name:
+
+   ietf-nma-a2u
+
+11.  References
+
+11.1.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", RFC 2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC6991]  Schoenwaelder, J., "Common YANG Data Types", RFC 6991,
+              July 2013, <https://www.rfc-editor.org/rfc/rfc6991>.
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 35]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   [RFC7950]  Bjorklund, M., "The YANG 1.1 Data Modeling Language",
+              RFC 7950, August 2016,
+              <https://www.rfc-editor.org/rfc/rfc7950>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", RFC 8174, May 2017,
+              <https://www.rfc-editor.org/rfc/rfc8174>.
+
+11.2.  Informative References
+
+   [I-D.ietf-nmop-network-incident-yang]
+              Hu, T., Contreras, L. M., Wu, Q., Davis, N., and C. Feng,
+              "A YANG Data Model for Network Incident Management", Work
+              in Progress, Internet-Draft, draft-ietf-nmop-network-
+              incident-yang-09, 29 June 2026,
+              <https://datatracker.ietf.org/doc/draft-ietf-nmop-network-
+              incident-yang/>.
+
+   [I-D.zhao-nmop-network-management-agent]
+              Zhao, X., "AI based Network Management Agent (NMA):
+              Concepts and Architecture", Work in Progress, Internet-
+              Draft, draft-zhao-nmop-network-management-agent, February
+              2026, <https://datatracker.ietf.org/doc/draft-zhao-nmop-
+              network-management-agent/>.
+
+   [RFC6241]  Enns, R., Bjorklund, M., Schoenwaelder, J., and A.
+              Bierman, "Network Configuration Protocol (NETCONF)",
+              RFC 6241, June 2011,
+              <https://www.rfc-editor.org/rfc/rfc6241>.
+
+   [RFC8040]  Bierman, A., Bjorklund, M., and K. Watsen, "RESTCONF
+              Protocol", RFC 8040, January 2017,
+              <https://www.rfc-editor.org/rfc/rfc8040>.
+
+   [RFC8639]  Voit, E., "Subscription to YANG Notifications", RFC 8639,
+              September 2019, <https://www.rfc-editor.org/rfc/rfc8639>.
+
+   [RFC8641]  Voit, E., Clemm, A., Gonzalez Prieto, A., Nilsen-Nygaard,
+              E., and A. Tripathy, "Subscription to YANG Notifications
+              for Datastore Updates", RFC 8641, September 2019,
+              <https://www.rfc-editor.org/rfc/rfc8641>.
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 36]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+Appendix A.  Example A2U Interaction Using YANG-Based Management
+             Protocols
+
+   This appendix provides a non-normative example of an A2U interaction
+   flow in a network incident diagnosis scenario.  RESTCONF-style
+   resource paths are used only to illustrate how A2U operational state
+   data, RPC operations, and YANG notifications can be accessed by an
+   A2U client.
+
+   A typical A2U interaction can proceed as follows:
+
+   *  The A2U client first discovers the NMA capabilities.
+
+   *  The A2U client invokes the submit-intent RPC with either natural-
+      language input or structured input.
+
+   *  The NMA creates or updates intent and task operational state.
+
+   *  The A2U client observes task state by subscribing to A2U task
+      notifications.
+
+   *  When confirmation is required, the NMA creates a confirmation
+      object and sends a confirmation-required notification.
+
+   *  The A2U client invokes the resolve-confirmation RPC to approve,
+      reject, modify, or escalate the proposed action.
+
+   *  The NMA continues execution and sends task progress or completion
+      notifications.
+
++--------------+                                               +------------+
+|  A2U Client  |                                               | A2U Server |
+|    (User)    |                                               |    (NMA)   |
++-------+------+                                               +-------+----+
+        |                                                              |
+        | 1. GET /restconf/data/ietf-nma-a2u:a2u/agent-capabilities    |
+        |------------------------------------------------------------->|
+        |                                                              |
+        | 2. Return NMA capabilities                                   |
+        |<-------------------------------------------------------------|
+        |                                                              |
+        | 3. POST /restconf/operations/ietf-nma-a2u:submit-intent      |
+        |    Input: incident diagnosis intent with                     |
+        |    ietf-incident aligned constraints                         |
+        |------------------------------------------------------------->|
+        |                                                              |
+        | 4. Return accepted result: intent-id, task-id, state         |
+        |<-------------------------------------------------------------|
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 37]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+        |                                                              |
+        | 5. Establish subscription for a2u-task-notification          |
+        |------------------------------------------------------------->|
+        |                                                              |
+        | 6. Subscription established                                  |
+        |<-------------------------------------------------------------|
+        |                                                              |
+        | 7. Notification: plan-generated                              |
+        |<-------------------------------------------------------------|
+        |                                                              |
+        | 8. Notification: confirmation-required                       |
+        |    Carries confirmation-id and compact summary               |
+        |<-------------------------------------------------------------|
+        |                                                              |
+        | 9. Optional: GET /restconf/data/ietf-nma-a2u:a2u/            |
+        |    confirmation=confirmation-id                              |
+        |------------------------------------------------------------->|
+        |                                                              |
+        |10. Return confirmation object: context, actions, status      |
+        |<-------------------------------------------------------------|
+        |                                                              |
+        |11.POST /restconf/operations/ietf-nma-a2u:resolve-confirmation|
+        |    Input: confirmation-id, action, resolved-by,              |
+        |    optional modified-params                                  |
+        |------------------------------------------------------------->|
+        |                                                              |
+        |12. Return confirmation result and updated task-state         |
+        |<-------------------------------------------------------------|
+        |                                                              |
+        |13. Notification: step-completed                              |
+        |<-------------------------------------------------------------|
+        |                                                              |
+        |14. Notification: task-completed                              |
+        |<-------------------------------------------------------------|
+        |                                                              |
+        |15.Optional: GET /restconf/data/ietf-nma-a2u:a2u/task=task-id |
+        |------------------------------------------------------------->|
+        |                                                              |
+        |16. Return final task state and result                        |
+        |<-------------------------------------------------------------|
+        |                                                              |
++-------+------+                                               +-------+----+
+|  A2U Client  |                                               | A2U Server |
+|    (User)    |                                               |    (NMA)   |
++--------------+                                               +------------+
+
+      Figure 4: Example A2U Interaction Flow Using a YANG-Based
+                         Management Protocol
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 38]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+Appendix B.  JSON Examples
+
+   This appendix provides non-normative JSON examples for an OTN network
+   incident diagnosis and resolution scenario.  The examples demonstrate
+   how the A2U interface can carry incident-related information aligned
+   with the ietf-incident module defined in
+   [I-D.ietf-nmop-network-incident-yang].  In this example, the A2U
+   model does not redefine the incident model.  Instead, the A2U
+   envelope carries the user-facing interaction semantics, such as
+   intent submission, task lifecycle, confirmation, and notification,
+   while the constraints and confirmation context reuse incident fields
+   such as incident-no, service-instance, domain, priority, status,
+   sources, probable-causes, probable-events, and events.
+
+   In this example, a vendor's OSS detects degradation of an OTN service
+   and invokes the NMA through A2U by submitting an incident diagnosis
+   intent.  The structured intent carries incident information aligned
+   with [I-D.ietf-nmop-network-incident-yang].  After accepting the
+   intent, the NMA perceives the incident, analyzes the probable root
+   cause, generates an incident resolution plan, and creates a
+   confirmation object before executing a service-affecting recovery
+   action.  Task progress and state changes are reported using A2U YANG
+   notifications.
+
+   Examples of A2U interface message contents are provided below in
+   sequence from intent initiation, task planning, confirmation,
+   execution to feedback.
+
+B.1.  Agent Capabilities
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 39]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   {
+     "agent-id": "nma-transport-1",
+     "version": "0.1.0",
+     "skills": [
+       {
+         "skill-id": "otn-incident-handling",
+         "name": "OTN incident handling",
+         "description": "Analyze OTN alarms, performance degradation, and service impact, and propose or execute recovery actions.",
+         "input-schema": "urn:ietf:params:xml:ns:yang:ietf-incident",
+         "confirmation-required": true,
+         "tags": [
+           "transport",
+           "otn",
+           "incident",
+           "remediation"
+         ]
+       }
+     ],
+     "policies": {
+       "human-in-the-loop": true,
+       "max-timeout-seconds": 1800
+     }
+   }
+
+B.2.  Intent Submission RPC
+
+   The following examples show the input and output of the submit-intent
+   RPC.  The RPC can carry either a natural-language intent or a
+   structured intent.  Both input modes use the same submit-intent RPC
+   and follow the same task lifecycle after the intent is accepted.
+
+   Input example using a natural-language intent:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 40]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   {
+     "request-id": "req-1001",
+     "correlation-id": "corr-20260630-001",
+     "tenant-id": "tenant-1",
+     "intent": {
+       "intent-id": "intent-1001",
+       "mode": "natural-language",
+       "submitter": {
+         "type": "system",
+         "id": "oss-a"
+       },
+       "timestamp": "2026-06-30T10:00:00Z",
+       "natural-language": {
+         "text": "Analyze the service degradation of OTN service svc-1001, identify the root cause, assess affected resources, and recommend recovery actions."
+       }
+     }
+   }
+
+   Input example using a structured intent:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 41]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   {
+     "request-id": "req-1002",
+     "correlation-id": "corr-20260630-002",
+     "tenant-id": "tenant-1",
+     "intent": {
+       "intent-id": "intent-1002",
+       "mode": "structured",
+       "submitter": {
+         "type": "system",
+         "id": "orchestrator-a"
+       },
+       "timestamp": "2026-06-30T10:05:00Z",
+       "structured": {
+         "type": "DIAGNOSE",
+         "target-resource": "incident-56433218",
+         "constraints-schema": "urn:ietf:params:xml:ns:yang:ietf-incident",
+         "constraints": {
+           "incident-no": 56433218,
+           "name": "otn-service-degradation",
+           "type": "problem",
+           "incident-id": "line-fault-svc-1001",
+           "service-instance": [
+             "svc-1001"
+           ],
+           "domain": "otn",
+           "priority": "critical",
+           "status": "raised",
+           "ack-status": "unacknowledged",
+           "category": "network",
+           "detail": "OTN service svc-1001 is degraded. OTU_LOF and ODU_AIS alarm events were observed on the working path.",
+           "resolve-advice": "Diagnose the probable root cause and provide recovery suggestions. Prefer actions that minimize impact on running services.",
+           "occur-time": "2026-06-30T09:59:30Z",
+           "raise-time": "2026-06-30T10:00:00Z",
+           "last-updated": "2026-06-30T10:05:00Z"
+         },
+         "priority": 9
+       }
+     }
+   }
+
+   Output example after the intent is accepted:
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 42]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   {
+     "request-id": "req-1002",
+     "correlation-id": "corr-20260630-002",
+     "tenant-id": "tenant-1",
+     "accepted": true,
+     "intent-id": "intent-1002",
+     "task-id": "task-2001",
+     "state": "PENDING"
+   }
+
+B.3.  Task Object
+
+   {
+     "task-id": "task-2001",
+     "parent-intent-id": "intent-1002",
+     "state": "AWAITING_CONFIRMATION",
+     "created-at": "2026-06-30T10:00:00Z",
+     "updated-at": "2026-06-30T10:03:30Z",
+     "plan": [
+       {
+         "step-id": "step-1",
+         "action": "perceive-network-incident",
+         "target": "incident-56433218",
+         "status": "completed",
+         "observation": "The NMA perceived the OTN service degradation incident and loaded the incident context."
+       },
+       {
+         "step-id": "step-2",
+         "action": "analyze-network-incident",
+         "target": "incident-56433218",
+         "status": "completed",
+         "observation": "The NMA analyzed the incident and identified probable cause information based on alarms and topology correlation."
+       },
+       {
+         "step-id": "step-3",
+         "action": "generate-incident-resolution-plan",
+         "target": "incident-56433218",
+         "status": "completed",
+         "observation": "The NMA generated a resolution plan according to the incident resolve-advice and probable cause information."
+       },
+       {
+         "step-id": "step-4",
+         "action": "request-confirmation-before-incident-resolution",
+         "target": "incident-56433218",
+         "status": "pending",
+         "observation": "Waiting for confirmation before executing a service-affecting incident resolution action."
+       }
+     ],
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 43]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+     "result": {
+       "summary": "The incident has been analyzed. Probable cause information has been identified, and an incident resolution action is awaiting confirmation.",
+       "affected-resources": [
+         "incident-56433218",
+         "svc-1001",
+         "node-a",
+         "node-b",
+         "port-7",
+         "port-3"
+       ],
+       "output-data": {
+         "incident-no": 56433218,
+         "status": "updated",
+         "ack-status": "acknowledged",
+         "next-action": "confirmation-required"
+       }
+     }
+   }
+
+B.4.  Task Notifications
+
+   The following examples show A2U task notifications generated during
+   the incident diagnosis and resolution flow.
+
+   Plan-generated notification:
+
+   {
+     "task-id": "task-2001",
+     "intent-id": "intent-1002",
+     "notification-type": "plan-generated",
+     "time": "2026-06-30T10:03:00Z",
+     "payload": {
+       "plan-generated": {
+         "step-count": 4,
+         "estimated-duration": 300
+       }
+     }
+   }
+
+   Confirmation-required notification:
+
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 44]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   {
+     "task-id": "task-2001",
+     "intent-id": "intent-1002",
+     "notification-type": "confirmation-required",
+     "time": "2026-06-30T10:03:30Z",
+     "payload": {
+       "confirmation-required": {
+         "confirmation-id": "conf-5001",
+         "confirmation-type": "EXECUTION",
+         "priority": 9,
+         "timeout-seconds": 600,
+         "context-schema": "urn:ietf:params:xml:ns:yang:ietf-incident",
+         "summary": "Switch service svc-1001 to the protection path to bypass the affected working path resources.",
+         "allowed-actions": [
+           "approve",
+           "reject",
+           "escalate-to-human"
+         ]
+       }
+     }
+   }
+
+   Step-completed notification:
+
+   {
+     "task-id": "task-2001",
+     "intent-id": "intent-1002",
+     "notification-type": "step-completed",
+     "time": "2026-06-30T10:04:10Z",
+     "payload": {
+       "step-completed": {
+         "step-id": "step-5",
+         "observation": "The incident resolution action was executed. The affected service has been switched to the protection path."
+       }
+     }
+   }
+
+   Task-completed notification:
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 45]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   {
+     "task-id": "task-2001",
+     "intent-id": "intent-1002",
+     "notification-type": "task-completed",
+     "time": "2026-06-30T10:05:00Z",
+     "payload": {
+       "task-completed": {
+         "summary": "Incident 56433218 has been resolved and the related OTN service svc-1001 has been restored. The incident status is updated to cleared.",
+         "affected-resources": [
+           "incident-56433218",
+           "svc-1001",
+           "node-a",
+           "node-b",
+           "port-7",
+           "port-3"
+         ]
+       }
+     }
+   }
+
+B.5.  Confirmation Object
+
+   The following example shows the full confirmation object exposed as
+   A2U operational state data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 46]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   {
+     "confirmation-id": "conf-5001",
+     "task-id": "task-2001",
+     "type": "EXECUTION",
+     "priority": 9,
+     "timeout-seconds": 600,
+     "context-schema": "urn:ietf:params:xml:ns:yang:ietf-incident",
+     "context": {
+       "incident-no": 56433218,
+       "name": "otn-service-degradation",
+       "type": "problem",
+       "incident-id": "line-fault-svc-1001",
+       "service-instance": [
+         "svc-1001"
+       ],
+       "domain": "otn",
+       "priority": "critical",
+       "status": "updated",
+       "ack-status": "acknowledged",
+       "category": "network",
+       "detail": "The incident has been analyzed. The probable cause is associated with the working path resources between node-a and node-b.",
+       "resolve-advice": "Switch service svc-1001 to the protection path to bypass the affected working path resources."
+     },
+     "allowed-actions": [
+       "approve",
+       "reject",
+       "escalate-to-human"
+     ],
+     "status": "pending"
+   }
+
+B.6.  Confirmation Resolution RPC
+
+   The following example shows the input and output of the resolve-
+   confirmation RPC.
+
+   Input:
+
+   {
+     "request-id": "req-1003",
+     "correlation-id": "corr-20260630-002",
+     "tenant-id": "tenant-1",
+     "confirmation-id": "conf-5001",
+     "action": "approve",
+     "resolved-by": "operator-a"
+   }
+
+   Output:
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 47]
+
+Internet-Draft              NMA A2U Interface                  July 2026
+
+
+   {
+     "confirmation-id": "conf-5001",
+     "task-id": "task-2001",
+     "status": "approved",
+     "task-state": "EXECUTING"
+   }
+
+B.7.  Error Response
+
+   {
+     "error-type": "unprocessable-content",
+     "error-code": "A2U-INCIDENT-RESOLVE-001",
+     "error-message": "The requested incident resolution action cannot be completed because the protection resource is unavailable.",
+     "retryable": false,
+     "target": "resolve-confirmation.action",
+     "details": {
+       "incident-resolve-error-info": {
+         "incident-no": 56433218,
+         "reason": "resource-unavailable",
+         "description": "The protection path required to bypass the affected working path is unavailable."
+       }
+     }
+   }
+
+Authors' Addresses
+
+   Xing Zhao
+   China Academy of Information and Communication Technology
+   China
+   Email: zhaoxing@caict.ac.cn
+
+
+   Minxue Wang
+   China Mobile
+   Beijing
+   China
+   Email: wangminxue@chinamobile.com
+
+
+   Daniele Ceccarelli
+   Cisco
+   Email: dceccare@cisco.com
+
+
+   Yunbin Xu
+   China Academy of Information and Communication Technology
+   China
+   Email: xuyunbin@caict.ac.cn
+
+
+
+Zhao, et al.             Expires 7 January 2027                [Page 48]

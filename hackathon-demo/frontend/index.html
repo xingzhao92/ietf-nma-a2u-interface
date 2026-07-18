@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Domain Controller · Embedded NMA</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    .controller-layout {
+      height: calc(100vh - 64px);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: minmax(580px, 1.35fr) minmax(440px, 1fr);
+      gap: 12px;
+    }
+    .left, .right { min-height:0; display:flex; flex-direction:column; gap:12px; }
+    .topology-panel { flex: 0 0 48%; min-height:330px; }
+    .data-panel { min-height:0; flex:1; }
+    .nma-panel { flex:0 0 55%; min-height:390px; }
+    .actions-panel { min-height:0; flex:1; }
+    #topologySvg { width:100%; height:100%; min-height:280px; background:linear-gradient(#fbfdff,#f6f9fd); }
+    .link { stroke:#c6d2e2; stroke-width:5; stroke-linecap:round; }
+    .link.working { stroke:#e85d5d; stroke-width:8; }
+    .link.protection { stroke:#11a36a; stroke-width:8; stroke-dasharray:10 6; }
+    .node circle { fill:#fff; stroke:#2d66c3; stroke-width:3; }
+    .node text { text-anchor:middle; font-size:13px; font-weight:800; fill:#17365f; }
+    .node.affected circle { stroke:#d92d20; fill:#fff0ef; }
+    .legend { display:flex; gap:14px; font-size:11px; color:#64748b; }
+    .legend span::before { content:''; width:24px; height:5px; border-radius:4px; display:inline-block; margin-right:6px; vertical-align:middle; background:#c6d2e2; }
+    .legend .w::before { background:#e85d5d; }
+    .legend .p::before { background:#11a36a; }
+    .architecture {
+      display:grid; grid-template-columns: 1fr; gap:8px; margin-bottom:10px;
+    }
+    .arch-layer { border:1px solid #cad6e6; border-radius:9px; padding:8px; background:#f9fbfe; }
+    .arch-title { font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:.7px; margin-bottom:6px; }
+    .arch-boxes { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+    .arch-box { padding:8px 5px; border-radius:7px; background:#fff; border:1px solid #dbe3ef; text-align:center; font-size:11px; font-weight:700; }
+    .arch-box.active { border-color:#1455d9; background:#eaf1ff; color:#1447a6; }
+    .tool-call { padding:8px 0; border-bottom:1px solid #edf1f6; font-size:11px; }
+    .tool-call:last-child { border-bottom:0; }
+    .latest-task { padding:10px; border:1px solid #dbe3ef; border-radius:9px; background:#fff; }
+    @media (max-width: 1100px) {
+      .controller-layout { grid-template-columns:1fr; height:auto; }
+      .topology-panel,.nma-panel { min-height:480px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Domain Controller <span class="badge blue">Embedded NMA</span></h1>
+      <div class="subtitle">Domain resources and A2C function calls are shown separately from the A2U client</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn light" onclick="injectIncident()">Inject OTN Degradation</button>
+      <button class="btn light" onclick="location.href='/oss'">Open OSS A2U Client</button>
+      <button class="btn light" onclick="resetDemo()">Reset</button>
+    </div>
+  </header>
+
+  <main class="controller-layout">
+    <section class="left">
+      <div class="panel topology-panel">
+        <div class="panel-header">
+          <h2>Transport Network Topology</h2>
+          <div class="legend"><span class="w">Working / affected</span><span class="p">Protection / active</span></div>
+        </div>
+        <div class="panel-body" style="height:calc(100% - 45px);padding:0">
+          <svg id="topologySvg" viewBox="0 0 760 330"></svg>
+        </div>
+      </div>
+
+      <div class="panel data-panel">
+        <div class="panel-header">
+          <h2>Controller Operational Data</h2>
+          <button class="btn small secondary" onclick="refresh()">Refresh</button>
+        </div>
+        <div class="panel-body" style="height:calc(100% - 45px);overflow:auto">
+          <div class="card-title">Services</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Type</th><th>Endpoints</th><th>Active path</th><th>State</th></tr></thead>
+              <tbody id="serviceRows"></tbody>
+            </table>
+          </div>
+          <div style="height:14px"></div>
+          <div class="card-title">Network Incidents</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>No.</th><th>Service</th><th>Priority</th><th>Status</th><th>Probable cause</th></tr></thead>
+              <tbody id="incidentRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="right">
+      <div class="panel nma-panel">
+        <div class="panel-header">
+          <h2>Embedded Network Management Agent</h2>
+          <span id="nmaState" class="badge gray">IDLE</span>
+        </div>
+        <div class="panel-body" style="height:calc(100% - 45px);overflow:auto">
+          <div class="architecture">
+            <div class="arch-layer">
+              <div class="arch-title">Interface service layer</div>
+              <div class="arch-boxes">
+                <div id="a2uBox" class="arch-box">A2U Service Function</div>
+                <div class="arch-box">A2A Adapter</div>
+                <div id="a2cBox" class="arch-box">A2C / A2N Tools</div>
+              </div>
+            </div>
+            <div class="arch-layer">
+              <div class="arch-title">Autonomous logic layer</div>
+              <div class="arch-boxes">
+                <div id="awarenessBox" class="arch-box">Awareness</div>
+                <div id="analysisBox" class="arch-box">Analysis</div>
+                <div id="decisionBox" class="arch-box">Decision & Planning</div>
+              </div>
+            </div>
+          </div>
+          <div id="latestTask" class="empty">No A2U task has been submitted.</div>
+        </div>
+      </div>
+
+      <div class="panel actions-panel">
+        <div class="panel-header">
+          <h2>A2C Interface Calls</h2>
+          <span class="badge orange">NMA → Controller functions</span>
+        </div>
+        <div id="controllerActions" class="panel-body" style="height:calc(100% - 45px);overflow:auto">
+          <div class="empty">No controller action yet.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+let state = null;
+let lastActionsSignature = '';
+const positions = {
+  NE1:[90,165], NE2:[255,85], NE3:[465,85], NE6:[670,165],
+  NE4:[255,245], NE5:[465,245]
+};
+function esc(v) { return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function edgeKey(a,b) { return [a,b].sort().join('|'); }
+
+async function refresh() {
+  const res = await fetch('/api/demo/state');
+  state = await res.json();
+  renderTopology();
+  renderTables();
+  renderNma();
+  renderActions();
+}
+
+function renderTopology() {
+  const svg = document.getElementById('topologySvg');
+  const service = (state.services || []).find(x => x['service-id'] === 'svc-1001');
+  const working = new Set();
+  const protection = new Set();
+  if (service) {
+    for (let i=0;i<service['working-path'].length-1;i++) working.add(edgeKey(service['working-path'][i],service['working-path'][i+1]));
+    if (service['active-path'] === 'protection') {
+      for (let i=0;i<service['protection-path'].length-1;i++) protection.add(edgeKey(service['protection-path'][i],service['protection-path'][i+1]));
+    }
+  }
+  let html = '';
+  (state.topology.links || []).forEach(link => {
+    const [x1,y1] = positions[link.source], [x2,y2] = positions[link.target];
+    const key = edgeKey(link.source, link.target);
+    const cls = protection.has(key) ? 'link protection' : working.has(key) ? 'link working' : 'link';
+    html += `<line class="${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  });
+  Object.entries(positions).forEach(([node,[x,y]]) => {
+    const affected = ['NE2','NE3'].includes(node) && service && service.state === 'degraded';
+    html += `<g class="node ${affected?'affected':''}"><circle cx="${x}" cy="${y}" r="28"/><text x="${x}" y="${y+5}">${node}</text></g>`;
+  });
+  html += '<text x="360" y="28" text-anchor="middle" font-size="12" fill="#64748b">svc-1001: working NE1–NE2–NE3–NE6 · protection NE1–NE4–NE5–NE6</text>';
+  svg.innerHTML = html;
+}
+
+function renderTables() {
+  document.getElementById('serviceRows').innerHTML = (state.services || []).map(s =>
+    `<tr><td class="mono">${esc(s['service-id'])}</td><td>${esc(s['service-type'])}</td>` +
+    `<td>${esc(s.source)} → ${esc(s.destination)}</td><td><span class="badge ${s['active-path']==='protection'?'green':'blue'}">${esc(s['active-path'])}</span></td>` +
+    `<td><span class="badge ${s.state==='up'?'green':s.state==='degraded'?'red':'gray'}">${esc(s.state)}</span></td></tr>`
+  ).join('');
+  document.getElementById('incidentRows').innerHTML = (state.incidents || []).map(i => {
+    const cause = (i['probable-causes'] || [])[0];
+    return `<tr><td class="mono">${esc(i['incident-no'])}</td><td>${esc((i['service-instance']||[]).join(', '))}</td>` +
+      `<td><span class="badge red">${esc(i.priority)}</span></td><td><span class="badge ${i.status==='cleared'?'green':'orange'}">${esc(i.status)}</span></td>` +
+      `<td>${esc(cause ? cause.cause : 'Pending NMA analysis')}</td></tr>`;
+  }).join('');
+}
+
+function renderNma() {
+  const task = state.a2u['latest-task'];
+  ['a2uBox','a2cBox','awarenessBox','analysisBox','decisionBox'].forEach(id => document.getElementById(id).classList.remove('active'));
+  const badge = document.getElementById('nmaState');
+  if (!task) {
+    badge.className='badge gray'; badge.textContent='IDLE';
+    document.getElementById('latestTask').className='empty';
+    document.getElementById('latestTask').textContent='No A2U task has been submitted.';
+    return;
+  }
+  badge.className='badge ' + (task.state==='COMPLETED'?'green':task.state==='FAILED'?'red':'blue');
+  badge.textContent=task.state;
+  document.getElementById('a2uBox').classList.add('active');
+  if (['ANALYZING','PLANNING','AWAITING_CONFIRMATION'].includes(task.state)) {
+    document.getElementById('awarenessBox').classList.add('active');
+    document.getElementById('analysisBox').classList.add('active');
+    document.getElementById('decisionBox').classList.add('active');
+  }
+  if (['EXECUTING','COMPLETED'].includes(task.state)) document.getElementById('a2cBox').classList.add('active');
+
+  let html = `<div class="latest-task"><div class="status-line"><b class="mono">${esc(task['task-id'])}</b><span class="state ${esc(task.state)}">${esc(task.state)}</span></div>`;
+  html += '<div style="height:8px"></div>';
+  (task.plan || []).forEach(step => {
+    html += `<div class="tool-call"><b>${esc(step.action)}</b> <span class="badge gray">${esc(step.status)}</span>` +
+      `<div class="muted" style="margin-top:3px">${esc(step.observation || step.target || '')}</div></div>`;
+  });
+  if (task.result && task.result.summary) html += `<div class="notice" style="margin-top:10px">${esc(task.result.summary)}</div>`;
+  html += '</div>';
+  document.getElementById('latestTask').className='';
+  document.getElementById('latestTask').innerHTML=html;
+}
+
+function renderActions() {
+  const items = (state['controller-actions'] || []).filter(a => a.interface === 'A2C');
+  const box = document.getElementById('controllerActions');
+
+  // The controller page refreshes periodically. Re-render only when the A2C
+  // call list actually changes; otherwise a refresh would disturb scrolling
+  // and collapse any expanded Request / response details.
+  const signature = JSON.stringify(items.map(a => [
+    a['call-id'], a.time, a.operation, a.target, a.request, a.response
+  ]));
+  if (signature === lastActionsSignature) return;
+
+  const previousScrollTop = box.scrollTop;
+  const previousScrollHeight = box.scrollHeight;
+  const distanceFromBottom = previousScrollHeight - previousScrollTop - box.clientHeight;
+  const followLatest = previousScrollHeight <= box.clientHeight || distanceFromBottom < 36;
+  lastActionsSignature = signature;
+
+  if (!items.length) {
+    box.innerHTML='<div class="empty">No A2C call yet. Run an A2U intent from the OSS page.</div>';
+    box.scrollTop = 0;
+    return;
+  }
+
+  box.innerHTML=items.map((a,index) =>
+    `<div class="tool-call">` +
+      `<div class="status-line"><div><span class="badge blue">${index + 1}</span> <b>${esc(a.operation)}</b></div><span class="muted" style="font-size:10px">${esc(a.time)}</span></div>` +
+      `<div class="mono muted" style="font-size:10px;margin-top:4px">target: ${esc(a.target)} · ${esc(a['call-id'] || '')}</div>` +
+      `<div style="font-size:11px;margin-top:5px;color:#475569">${esc(a.purpose || '')}</div>` +
+      `<details style="margin-top:6px"><summary style="cursor:pointer;font-size:10px;font-weight:750;color:#1455d9">Request / response</summary>` +
+      `<pre class="json" style="margin-top:6px;max-height:150px">${esc(JSON.stringify({request:a.request,response:a.response}, null, 2))}</pre></details>` +
+    `</div>`
+  ).join('');
+
+  requestAnimationFrame(() => {
+    if (followLatest) {
+      // Auto-follow newly appended calls only while the user is already at
+      // the bottom of the list.
+      box.scrollTop = box.scrollHeight;
+    } else {
+      // Preserve the user's historical-reading position while new calls arrive.
+      box.scrollTop = Math.min(
+        previousScrollTop,
+        Math.max(0, box.scrollHeight - box.clientHeight)
+      );
+    }
+  });
+}
+
+async function injectIncident() {
+  await fetch('/api/demo/inject-incident',{method:'POST'});
+  await refresh();
+}
+async function resetDemo() {
+  await fetch('/api/demo/reset',{method:'POST'});
+  await refresh();
+}
+setInterval(refresh, 900);
+window.addEventListener('load', refresh);
+</script>
+</body>
+</html>
