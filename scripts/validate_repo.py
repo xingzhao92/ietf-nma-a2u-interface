@@ -7,9 +7,9 @@ root = Path(__file__).resolve().parents[1]
 draft = root / "drafts" / "draft-zhao-nmop-nma-a2u-yang-00.txt"
 yang = root / "yang" / "ietf-nma-a2u.yang"
 required = [
-    root / "hackathon-demo" / "app.py",
-    root / "hackathon-demo" / "agent.py",
-    root / "hackathon-demo" / "controller.py",
+    root / "IETF126-hackathon-demo" / "app.py",
+    root / "IETF126-hackathon-demo" / "agent.py",
+    root / "IETF126-hackathon-demo" / "controller.py",
     root / "docs" / "images" / "oss-a2u-client.png",
     root / "docs" / "images" / "domain-controller.png",
 ]

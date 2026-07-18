@@ -6,10 +6,10 @@ venv/
 .pytest_cache/
 
 # Demo runtime state
-hackathon-demo/data/interaction-log.json
-hackathon-demo/data/controller-actions.json
-hackathon-demo/data/a2u-sessions.json
-hackathon-demo/data/tasks.json
+IETF126-hackathon-demo/data/interaction-log.json
+IETF126-hackathon-demo/data/controller-actions.json
+IETF126-hackathon-demo/data/a2u-sessions.json
+IETF126-hackathon-demo/data/tasks.json
 
 # OS / editor
 .DS_Store

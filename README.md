@@ -44,7 +44,7 @@ schema identifiers. The incident scenario reuses information aligned with the
 
 ## IETF 126 Hackathon demo
 
-The [`hackathon-demo`](hackathon-demo/) directory contains a deterministic,
+The [`IETF126-hackathon-demo`](IETF126-hackathon-demo/) directory contains a deterministic,
 self-contained implementation of the A2U workflow.
 
 ### System composition
@@ -160,7 +160,7 @@ and result evaluation remain NMA responsibilities.
 ## Quick start
 
 ```bash
-cd hackathon-demo
+cd IETF126-hackathon-demo
 python -m venv .venv
 
 # Windows
@@ -200,7 +200,7 @@ python app.py
 Run the demo tests:
 
 ```bash
-cd hackathon-demo
+cd IETF126-hackathon-demo
 python tests/smoke_test.py
 python tests/api_contract_test.py
 ```
@@ -230,7 +230,7 @@ validate `yang/ietf-nma-a2u.yang` together with its imported IETF modules.
 │   └── draft-zhao-nmop-nma-a2u-yang-00.txt
 ├── yang/
 │   └── ietf-nma-a2u.yang
-├── hackathon-demo/
+├── IETF126-hackathon-demo/
 │   ├── agent.py
 │   ├── app.py
 │   ├── controller.py
