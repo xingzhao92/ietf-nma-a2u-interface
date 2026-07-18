@@ -1,0 +1,50 @@
+[
+  {
+    "incident-no": 56433218,
+    "name": "otn-service-degradation",
+    "type": "problem",
+    "incident-id": "line-fault-svc-1001",
+    "service-instance": [
+      "svc-1001"
+    ],
+    "domain": "otn",
+    "priority": "critical",
+    "status": "raised",
+    "ack-status": "unacknowledged",
+    "category": "network",
+    "sources": [
+      {
+        "source-id": "NE2/OTU-1",
+        "source-type": "network-element"
+      },
+      {
+        "source-id": "NE3/ODU-1",
+        "source-type": "network-element"
+      }
+    ],
+    "probable-causes": [],
+    "probable-events": [
+      "OTU_LOF",
+      "ODU_AIS"
+    ],
+    "events": [
+      {
+        "event-id": "alarm-otu-lof-001",
+        "event-type": "OTU_LOF",
+        "resource": "NE2/OTU-1",
+        "severity": "critical"
+      },
+      {
+        "event-id": "alarm-odu-ais-001",
+        "event-type": "ODU_AIS",
+        "resource": "NE3/ODU-1",
+        "severity": "major"
+      }
+    ],
+    "detail": "OTN service svc-1001 is degraded. OTU_LOF and ODU_AIS alarm events were observed on the working path.",
+    "resolve-advice": "Diagnose the probable root cause and provide recovery suggestions. Prefer actions that minimize impact on running services.",
+    "occur-time": "2026-07-18T12:12:54Z",
+    "raise-time": "2026-07-18T12:12:54Z",
+    "last-updated": "2026-07-18T12:12:54Z"
+  }
+]

@@ -1,0 +1,63 @@
+[
+  {
+    "service-id": "svc-1001",
+    "name": "OTN Gold Service 1001",
+    "service-type": "ODU",
+    "source": "NE1",
+    "destination": "NE6",
+    "bandwidth-mbps": 10,
+    "working-path": [
+      "NE1",
+      "NE2",
+      "NE3",
+      "NE6"
+    ],
+    "protection-path": [
+      "NE1",
+      "NE4",
+      "NE5",
+      "NE6"
+    ],
+    "active-path": "working",
+    "state": "degraded",
+    "protection-available": true
+  },
+  {
+    "service-id": "svc-2001",
+    "name": "Ethernet Private Line 2001",
+    "service-type": "EPL",
+    "source": "NE2",
+    "destination": "NE5",
+    "bandwidth-mbps": 100,
+    "working-path": [
+      "NE2",
+      "NE3",
+      "NE5"
+    ],
+    "protection-path": [
+      "NE2",
+      "NE4",
+      "NE5"
+    ],
+    "active-path": "working",
+    "state": "up",
+    "protection-available": true
+  },
+  {
+    "service-id": "svc-3001",
+    "name": "OTN Silver Service 3001",
+    "service-type": "ODU",
+    "source": "NE3",
+    "destination": "NE4",
+    "bandwidth-mbps": 10,
+    "working-path": [
+      "NE3",
+      "NE2",
+      "NE4"
+    ],
+    "protection-path": [],
+    "active-path": "working",
+    "state": "up",
+    "protection-available": false
+  }
+]
